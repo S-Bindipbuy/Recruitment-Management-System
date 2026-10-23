@@ -1,0 +1,78 @@
+{{define "page-reports"}}
+<div class="space-y-6" id="reports-page">
+    <div class="page-header">
+        <div class="page-header-left">
+            <h3 class="page-title">Reports</h3>
+            <p class="text-sm text-muted">Evaluation results and performance summary</p>
+        </div>
+        <a href="/pages/reports" class="report-refresh">Refresh</a>
+    </div>
+
+    <div class="card card-padded">
+        <h4 class="font-semibold mb-4">Evaluation Summary</h4>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <div class="report-summary-card report-summary-blue"><p>{{.Stats.TotalEmployees}}</p><p>Employees</p></div>
+            <div class="report-summary-card report-summary-green"><p>{{.Stats.CompletedEvals}}</p><p>Completed</p></div>
+            <div class="report-summary-card report-summary-yellow"><p>{{.Stats.PendingApprovals}}</p><p>Pending Approvals</p></div>
+            <div class="report-summary-card report-summary-purple"><p>{{.Stats.TotalAssignments}}</p><p>Total Assignments</p></div>
+        </div>
+    </div>
+
+    <div class="card card-padded">
+        <h4 class="font-semibold mb-4">Department Performance</h4>
+        {{if .Departments}}
+        <div class="space-y-4">
+            {{range .Departments}}
+            <div>
+                <div class="flex justify-between mb-1">
+                    <span class="text-sm font-medium text-subtle">Department #{{.DepartmentID}}</span>
+                    <span class="text-sm font-semibold" style="color: var(--rose-text);">{{printf "%.1f%%" .AvgPct}}</span>
+                </div>
+                <div class="progress-bar-bg">
+                    <div class="progress-bar-fill" style="width:{{.WidthPct}}%"></div>
+                </div>
+                <p class="text-xs text-muted mt-1">{{.Count}} evaluation{{if ne .Count 1}}s{{end}}</p>
+            </div>
+            {{end}}
+        </div>
+        {{else}}
+        <p class="text-muted">Department performance data is not available yet.</p>
+        {{end}}
+    </div>
+
+    <div class="card card-padded">
+        <div class="flex items-center justify-between mb-4">
+            <h4 class="font-semibold">All Evaluation Results</h4>
+            <span class="text-sm text-muted">{{len .Results}} completed evaluation{{if ne (len .Results) 1}}s{{end}}</span>
+        </div>
+        {{if .Results}}
+        <div class="overflow-x-auto">
+            <table>
+                <thead class="table-head">
+                    <tr>
+                        <th>Assignment</th>
+                        <th>Score</th>
+                        <th>Percentage</th>
+                        <th>Grade</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{range .Results}}
+                    <tr class="hover:bg-gray-50">
+                        <td class="text-sm">#{{.AssignmentID}}</td>
+                        <td class="text-sm font-medium">{{.Score}}</td>
+                        <td class="text-sm">{{.Percentage}}</td>
+                        <td>
+                            <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full {{.GradeClass}}">{{.Grade}}</span>
+                        </td>
+                    </tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
+        {{else}}
+        <div class="empty-state">No completed evaluations yet.</div>
+        {{end}}
+    </div>
+</div>
+{{end}}

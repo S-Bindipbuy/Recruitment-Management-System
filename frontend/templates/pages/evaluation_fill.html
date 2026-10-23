@@ -1,0 +1,103 @@
+{{define "page-evaluation-fill"}}
+<div class="space-y-6" id="evaluation-fill-page">
+    <div class="page-header">
+        <div class="page-header-left">
+            <h3 class="page-title">Evaluation #{{.Assignment.ID}}</h3>
+            <p class="page-subtitle">Evaluatee: {{.EvaluateeName}} · Status: {{.Assignment.Status}}</p>
+        </div>
+        <a href="/pages/evaluations" class="btn btn-ghost">Back to Evaluations</a>
+    </div>
+
+    {{if .Result}}
+    <div class="eval-result-card">
+        <h4 class="font-bold mb-3" style="color: var(--rose-pine);">Final Result</h4>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div><p class="eval-result-label">Score</p><p class="eval-result-value">{{printf "%.2f" .Result.TotalScore}}</p></div>
+            <div><p class="eval-result-label">Percentage</p><p class="eval-result-value">{{printf "%.1f%%" .Result.Percentage}}</p></div>
+            <div><p class="eval-result-label">Grade</p><p class="eval-result-value">{{.Result.Grade}}</p></div>
+        </div>
+    </div>
+
+    {{else if eq .Assignment.Status "pending"}}
+    <div class="card-section" style="padding: 2rem; text-align: center;">
+        <p class="text-muted mb-4">This evaluation has not been started yet.</p>
+        <button class="btn btn-foam cursor-pointer" style="padding: 0.625rem 1.5rem;" type="button" data-url="/pages/evaluation-fill/{{.Assignment.ID}}/start" data-request="POST">Start Evaluation</button>
+    </div>
+
+    {{else}}
+    <form class="space-y-6" method="post" action="/pages/evaluation-fill/{{.Assignment.ID}}" data-ajax>
+        {{$assignmentID := .Assignment.ID}}
+        {{range .Sections}}
+        <div class="eval-section">
+            <div class="eval-section-header">
+                <h4 class="eval-section-title">{{.Name}}</h4>
+                {{if .Description}}<p class="eval-section-desc">{{.Description}}</p>{{end}}
+            </div>
+            <div>
+                {{if .Questions}}
+                {{range .Questions}}
+                {{$q := .Model}}
+                <div class="eval-question">
+                    <label class="eval-question-label" for="q-{{$q.ID}}">
+                        {{$q.Question}}{{if .Required}}<span class="eval-question-required"> *</span>{{end}}
+                    </label>
+                    {{if $q.Description}}<p class="eval-question-desc">{{$q.Description}}</p>{{else}}<div class="mb-2"></div>{{end}}
+
+                    {{if eq $q.QuestionType "text"}}
+                    <textarea name="q_{{$q.ID}}" id="q-{{$q.ID}}" {{if .Required}}required{{end}} class="eval-textarea"></textarea>
+
+                    {{else if eq $q.QuestionType "number"}}
+                    <input type="number" step="any" name="q_{{$q.ID}}" id="q-{{$q.ID}}" {{if .Required}}required{{end}} class="eval-input">
+
+                    {{else if eq $q.QuestionType "boolean"}}
+                    <select name="q_{{$q.ID}}" id="q-{{$q.ID}}" {{if .Required}}required{{end}} class="eval-input">
+                        <option value="">-- Select --</option>
+                        <option value="true">Yes</option>
+                        <option value="false">No</option>
+                    </select>
+
+                    {{else}}
+                    <input type="number" step="0.5" min="0" max="10" name="q_{{$q.ID}}" id="q-{{$q.ID}}" {{if .Required}}required{{end}} placeholder="Rating 0 - 10" class="eval-input">
+                    {{end}}
+                </div>
+                {{end}}
+                {{else}}
+                <div class="eval-empty">No questions in this section.</div>
+                {{end}}
+            </div>
+        </div>
+        {{end}}
+
+        {{template "eval-comments" dict "AssignmentID" $assignmentID "Comments" $.Comments}}
+
+        {{if .Sections}}
+        <div class="flex justify-end pb-6">
+            <button type="submit" class="btn btn-love cursor-pointer" style="padding: 0.625rem 1.5rem;">Submit Evaluation</button>
+        </div>
+        {{end}}
+    </form>
+    {{end}}
+</div>
+{{end}}
+
+{{define "eval-comments"}}
+<div id="comments-box" class="comments-box" data-assignment-id="{{.AssignmentID}}">
+    <h4 class="comments-title">Comments</h4>
+    <div class="comments-list">
+        {{if .Comments}}
+        {{range .Comments}}
+        <div class="comment-item">
+            <p class="comment-text">{{.Comment.Comment}}</p>
+            <p class="comment-meta">{{.AuthorName}} · {{.Comment.CreatedAt.Format "Jan 2, 2006 15:04"}}</p>
+        </div>
+        {{end}}
+        {{else}}
+        <p class="comment-empty">No comments yet.</p>
+        {{end}}
+    </div>
+    <form data-target="#comments-box" data-swap="outerHTML" class="comment-form" method="post" action="/pages/evaluation-fill/{{.AssignmentID}}/comments" data-ajax>
+        <input type="text" name="comment" required placeholder="Add a comment..." class="comment-input">
+        <button type="submit" class="comment-submit">Post</button>
+    </form>
+</div>
+{{end}}

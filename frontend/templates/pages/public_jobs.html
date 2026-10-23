@@ -1,0 +1,53 @@
+{{define "page-public-jobs"}}
+<div class="space-y-6" id="public-jobs-page">
+    <div class="page-header">
+        <div>
+            <h3 class="page-title">Open Positions</h3>
+            <p class="page-subtitle">Browse our current job openings and apply today.</p>
+        </div>
+    </div>
+
+    <div class="grid gap-4">
+        {{range .Postings}}
+        <div class="card">
+            <div class="card-body">
+                <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                    <div>
+                        <h4 class="text-lg font-semibold" style="color: var(--rose-text);">{{.Title}}</h4>
+                        <div class="flex flex-wrap gap-3 mt-2 text-sm" style="color: var(--rose-subtle);">
+                            <span><i class="fa-solid fa-building mr-1"></i>{{.DepartmentName}}</span>
+                            <span><i class="fa-solid fa-briefcase mr-1"></i>{{.PositionName}}</span>
+                            <span><i class="fa-solid fa-clock mr-1"></i>{{.EmploymentType}}</span>
+                            {{if and .SalaryMin .SalaryMax}}
+                            <span><i class="fa-solid fa-dollar-sign mr-1"></i>${{printf "%.0f" (derefFloat .SalaryMin)}} - ${{printf "%.0f" (derefFloat .SalaryMax)}}</span>
+                            {{end}}
+                        </div>
+                        {{if .Description}}
+                        <p class="mt-3 text-sm" style="color: var(--rose-subtle);">{{.Description}}</p>
+                        {{end}}
+                        {{if .Requirements}}
+                        <div class="mt-3">
+                            <p class="text-sm font-medium" style="color: var(--rose-text);">Requirements:</p>
+                            <p class="text-sm" style="color: var(--rose-subtle);">{{.Requirements}}</p>
+                        </div>
+                        {{end}}
+                    </div>
+                    <div class="shrink-0">
+                        <a href="/apply?posting_id={{.ID}}&position={{.PositionName}}" class="btn btn-primary">
+                            <i class="fa-solid fa-paper-plane mr-1"></i> Apply Now
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+        {{else}}
+        <div class="card">
+            <div class="card-body text-center py-12">
+                <i class="fa-regular fa-folder-open text-4xl mb-3" style="color: var(--rose-pine);"></i>
+                <p class="text-muted">No open positions at the moment. Check back later!</p>
+            </div>
+        </div>
+        {{end}}
+    </div>
+</div>
+{{end}}

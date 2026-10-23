@@ -1,0 +1,87 @@
+{{define "page-dashboard"}}
+<div class="space-y-6">
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="stat-card">
+            <div class="stat-card-inner">
+                <div class="stat-icon stat-icon-blue">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>
+                    </svg>
+                </div>
+                <div class="stat-info">
+                    <p class="stat-label">Total Employees</p>
+                    <p class="stat-value">{{.Stats.TotalEmployees}}</p>
+                </div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-card-inner">
+                <div class="stat-icon stat-icon-green">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+                <div class="stat-info">
+                    <p class="stat-label">Total Assignments</p>
+                    <p class="stat-value">{{.Stats.TotalAssignments}}</p>
+                </div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-card-inner">
+                <div class="stat-icon stat-icon-yellow">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                </div>
+                <div class="stat-info">
+                    <p class="stat-label">Pending Approvals</p>
+                    <p class="stat-value">{{.Stats.PendingApprovals}}</p>
+                </div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-card-inner">
+                <div class="stat-icon stat-icon-purple">
+                    <svg fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"/>
+                    </svg>
+                </div>
+                <div class="stat-info">
+                    <p class="stat-label">Completed Evaluations</p>
+                    <p class="stat-value">{{.Stats.CompletedEvals}}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card card-padded">
+        <h3 class="text-lg font-semibold mb-4">Quick Actions</h3>
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <a href="/pages/cycle" class="action-card">
+                <div class="action-card-title font-medium">Run an Evaluation Cycle</div>
+                <div class="action-card-desc">Guided steps: period, template, who gets evaluated, launch</div>
+            </a>
+            <a href="/pages/evaluations" class="action-card">
+                <div class="action-card-title font-medium">My Evaluations</div>
+                <div class="action-card-desc">Assignments waiting for you to fill in</div>
+            </a>
+            <a href="/pages/approvals" class="action-card">
+                <div class="action-card-title font-medium" style="color: var(--rose-foam);">Review Approvals</div>
+                <div class="action-card-desc">Pending evaluations to approve</div>
+            </a>
+            <a href="/pages/reports" class="action-card">
+                <div class="action-card-title font-medium" style="color: var(--rose-iris);">View Reports</div>
+                <div class="action-card-desc">Generate evaluation reports</div>
+            </a>
+        </div>
+    </div>
+
+    <div class="card card-padded">
+        <h3 class="text-lg font-semibold mb-4">Recent Activity</h3>
+        <div class="space-y-4">
+            <p class="activity-empty">System operation logs active.</p>
+        </div>
+    </div>
+</div>
+{{end}}

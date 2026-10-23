@@ -1,0 +1,107 @@
+{{define "page-evaluations"}}
+<div class="space-y-6" id="evaluations-page">
+    <div class="page-header">
+        <div class="page-header-left">
+            <h3 class="page-title">Evaluations</h3>
+            <p class="page-subtitle">Your evaluation assignments</p>
+        </div>
+        <div class="page-actions">
+            <button onclick="document.getElementById('new-assignment-dialog').showModal()" class="btn btn-primary"><i class="fa-solid fa-plus text-xs"></i> New Assignment</button>
+        </div>
+    </div>
+
+    <div class="table-container">
+        <table>
+            <thead class="table-head">
+                <tr>
+                    <th>#</th>
+                    <th>Evaluator</th>
+                    <th>Evaluatee</th>
+                    <th>Due Date</th>
+                    <th>Status</th>
+                    <th>Result</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{if .Assignments}}
+                {{range .Assignments}}
+                <tr>
+                    <td class="table-cell-bold">#{{.Assignment.ID}}</td>
+                    <td class="table-cell-muted">{{.EvaluatorName}}</td>
+                    <td class="table-cell-muted">{{.EvaluateeName}}</td>
+                    <td class="text-sm text-muted">{{if .Assignment.DueDate}}{{.Assignment.DueDate.Format "2006-01-02"}}{{else}}-{{end}}</td>
+                    <td>
+                        <span class="badge {{if eq .Assignment.Status "completed"}}badge-active{{else if eq .Assignment.Status "started"}}badge-warning{{else if eq .Assignment.Status "submitted"}}badge-info{{else}}badge-danger{{end}}">{{.Assignment.Status}}</span>
+                    </td>
+                    <td>
+                        {{if .Result}}
+                        <span class="text-sm font-semibold" style="color: var(--rose-text);">{{printf "%.1f%%" .Result.Percentage}} · {{.Result.Grade}}</span>
+                        {{else}}<span class="text-sm text-muted">-</span>{{end}}
+                    </td>
+                    <td>
+                        {{if eq .Assignment.Status "pending"}}
+                        <button class="btn btn-sm btn-foam" type="button" data-url="/pages/evaluations/{{.Assignment.ID}}/start" data-request="POST">Start</button>
+                        {{else if eq .Assignment.Status "started"}}
+                        <a href="/pages/evaluation-fill/{{.Assignment.ID}}" class="btn btn-sm btn-primary">Fill Evaluation</a>
+                        {{else if eq .Assignment.Status "submitted"}}
+                        <span class="text-sm text-muted">Awaiting approval</span>
+                        {{else if eq .Assignment.Status "completed"}}
+                        <span class="badge badge-active"><i class="fa-solid fa-check text-xs"></i> Approved</span>
+                        {{else}}
+                        <span class="text-sm text-muted">-</span>
+                        {{end}}
+                    </td>
+                </tr>
+                {{end}}
+                {{else}}
+                <tr><td colspan="7" class="text-center text-muted" style="padding: 2rem;">No assignments yet. Create one with "New Assignment".</td></tr>
+                {{end}}
+            </tbody>
+        </table>
+    </div>
+
+    <dialog id="new-assignment-dialog" class="dialog">
+        <form class="dialog-body" method="post" action="/pages/evaluations/assignments" data-ajax data-close-dialog>
+            <h3 class="dialog-title">New Assignment</h3>
+            <div class="form-group">
+                <label class="form-label-sm">Period</label>
+                <select name="evaluation_period_id" required class="form-select form-input-lg">
+                    <option value="">Select a period</option>
+                    {{range .Periods}}<option value="{{.ID}}">#{{.ID}} · {{.Name}}</option>{{end}}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label-sm">Template</label>
+                <select name="evaluation_template_id" required class="form-select form-input-lg">
+                    <option value="">Select a template</option>
+                    {{range .Templates}}<option value="{{.ID}}">#{{.ID}} · {{.Name}}</option>{{end}}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label-sm">Evaluator</label>
+                <select name="evaluator_id" required class="form-select form-input-lg">
+                    <option value="">Select a worker</option>
+                    {{range .Workers}}<option value="{{.UserID}}">{{.Name}} · {{.EmployeeCode}}</option>{{end}}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label-sm">Evaluatee (candidate)</label>
+                <select name="candidate_id" required class="form-select form-input-lg">
+                    <option value="">Select a candidate</option>
+                    {{range .Candidates}}<option value="{{.ID}}">{{.Name}} · {{.Email}}</option>{{end}}
+                </select>
+                {{if not .Candidates}}<p class="mt-1 text-sm text-muted">No candidates are waiting — applicants appear here from the Candidates page.</p>{{end}}
+            </div>
+            <div class="form-group">
+                <label class="form-label-sm">Due Date</label>
+                <input type="date" name="due_date" class="form-input form-input-lg">
+            </div>
+            <div class="dialog-footer">
+                <button type="button" onclick="this.closest('dialog').close()" class="btn btn-ghost">Cancel</button>
+                <button type="submit" class="btn btn-love">Assign</button>
+            </div>
+        </form>
+    </dialog>
+</div>
+{{end}}

@@ -1,0 +1,87 @@
+{{define "page-interview-feedback"}}
+<div class="space-y-6" id="interview-feedback-page">
+    <div class="page-header">
+        <div>
+            <h3 class="page-title">Interview Feedback</h3>
+            <p class="page-subtitle">
+                {{if .Interview}}
+                    {{.Interview.CandidateName}} — {{.Interview.RoundName}}
+                {{end}}
+            </p>
+        </div>
+        <a href="/pages/interviews" class="btn btn-ghost"><i class="fa-solid fa-arrow-left mr-1"></i> Back to Interviews</a>
+    </div>
+
+    {{if .Interview}}
+    <div class="card">
+        <div class="card-header"><h4 class="card-title">Interview Details</h4></div>
+        <div class="card-body">
+            <div class="grid sm:grid-cols-2 gap-4">
+                <div><span class="text-sm text-muted">Candidate:</span><p class="font-medium">{{.Interview.CandidateName}}</p></div>
+                <div><span class="text-sm text-muted">Round:</span><p class="font-medium">{{.Interview.RoundName}}</p></div>
+                <div><span class="text-sm text-muted">Interviewer:</span><p class="font-medium">{{.Interview.InterviewerName}}</p></div>
+                <div><span class="text-sm text-muted">Scheduled:</span><p class="font-medium">{{.Interview.ScheduledAt.Format "Jan 02, 2006 15:04"}}</p></div>
+                <div><span class="text-sm text-muted">Duration:</span><p class="font-medium">{{.Interview.DurationMinutes}} minutes</p></div>
+                <div><span class="text-sm text-muted">Status:</span><p class="font-medium"><span class="badge badge-active">{{.Interview.Status}}</span></p></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="card-header"><h4 class="card-title">Feedback</h4></div>
+        <div class="card-body">
+            <form
+                  class="space-y-4" method="post" action="/pages/interviews/{{.Interview.ID}}/feedback" data-ajax>
+
+                <div class="grid sm:grid-cols-2 gap-4">
+                    <div class="form-group">
+                        <label class="form-label">Score (0-10)</label>
+                        <input type="number" name="score" min="0" max="10" step="0.1"
+                               {{if .Feedback}}value="{{printf "%.1f" .Feedback.Score}}"{{end}}
+                               class="form-input" placeholder="e.g. 7.5">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Recommendation</label>
+                        <select name="recommendation" class="form-select">
+                            <option value="pending" {{if and .Feedback (eq .Feedback.Recommendation "pending")}}selected{{end}}>Pending</option>
+                            <option value="strong_hire" {{if and .Feedback (eq .Feedback.Recommendation "strong_hire")}}selected{{end}}>Strong Hire</option>
+                            <option value="hire" {{if and .Feedback (eq .Feedback.Recommendation "hire")}}selected{{end}}>Hire</option>
+                            <option value="maybe" {{if and .Feedback (eq .Feedback.Recommendation "maybe")}}selected{{end}}>Maybe</option>
+                            <option value="no_hire" {{if and .Feedback (eq .Feedback.Recommendation "no_hire")}}selected{{end}}>No Hire</option>
+                            <option value="strong_no_hire" {{if and .Feedback (eq .Feedback.Recommendation "strong_no_hire")}}selected{{end}}>Strong No Hire</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Strengths</label>
+                    <textarea name="strengths" rows="3" class="form-input" placeholder="What did the candidate do well?">{{if .Feedback}}{{.Feedback.Strengths}}{{end}}</textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Weaknesses</label>
+                    <textarea name="weaknesses" rows="3" class="form-input" placeholder="Areas for improvement">{{if .Feedback}}{{.Feedback.Weaknesses}}{{end}}</textarea>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Additional Comments</label>
+                    <textarea name="comments" rows="3" class="form-input" placeholder="Any other observations">{{if .Feedback}}{{.Feedback.Comments}}{{end}}</textarea>
+                </div>
+
+                <div class="flex justify-end gap-2">
+                    <a href="/pages/interviews" class="btn btn-ghost">Cancel</a>
+                    <button type="submit" class="btn btn-love">Save Feedback</button>
+                </div>
+            </form>
+        </div>
+    </div>
+    {{else}}
+    <div class="card">
+        <div class="card-body text-center py-12">
+            <i class="fa-regular fa-calendar-xmark text-4xl mb-3" style="color: var(--rose-pine);"></i>
+            <p class="text-muted">Interview not found.</p>
+        </div>
+    </div>
+    {{end}}
+</div>
+{{end}}

@@ -1,0 +1,188 @@
+{{define "page-candidates"}}
+<div class="space-y-6" id="candidates-page">
+    <div class="page-header flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+            <h3 class="page-title">Candidates</h3>
+            <p class="page-subtitle">Keep applicant details and CVs together.</p>
+        </div>
+        <div class="flex items-center gap-2">
+            <form class="flex items-center gap-2" method="get" action="/pages/candidates" data-ajax>
+                <select name="job_posting_id" class="form-select" onchange="this.form.requestSubmit()">
+                    <option value="">All Job Postings</option>
+                    {{range .Postings}}<option value="{{.ID}}" {{if eq $.SelectedJobPostingID .ID}}selected{{end}}>{{.Title}}</option>{{end}}
+                </select>
+                <select name="status" class="form-select" onchange="this.form.requestSubmit()">
+                    <option value="">All Status</option>
+                    <option value="new" {{if eq $.SelectedStatus "new"}}selected{{end}}>new</option>
+                    <option value="screening" {{if eq $.SelectedStatus "screening"}}selected{{end}}>screening</option>
+                    <option value="interviewing" {{if eq $.SelectedStatus "interviewing"}}selected{{end}}>interviewing</option>
+                    <option value="hired" {{if eq $.SelectedStatus "hired"}}selected{{end}}>hired</option>
+                    <option value="rejected" {{if eq $.SelectedStatus "rejected"}}selected{{end}}>rejected</option>
+                </select>
+            </form>
+            <button onclick="document.getElementById('upload-cv-dialog').showModal()" class="btn btn-primary">
+                <i class="fa-solid fa-file-arrow-up text-xs"></i> Upload CV
+            </button>
+        </div>
+    </div>
+
+    {{if .ErrorMessage}}
+    <div class="wizard-alert">
+        <i class="fa-solid fa-circle-exclamation"></i>
+        <span>{{.ErrorMessage}}</span>
+    </div>
+    {{end}}
+    {{if .Notice}}
+    <div class="tpl-banner tpl-banner-ok">
+        <i class="fa-solid fa-circle-check"></i>
+        <span>{{.Notice}}</span>
+    </div>
+    {{end}}
+
+    <div class="table-container overflow-x-auto">
+        <table>
+            <thead class="table-head"><tr>
+                <th>Candidate</th>
+                <th>Job Posting</th>
+                <th>Skills</th>
+                <th>CV</th>
+                <th>Evaluation</th>
+                <th>Status</th>
+                <th class="text-right">Action</th>
+            </tr></thead>
+            <tbody>
+                {{range .Candidates}}
+                <tr>
+                    <td><p class="font-medium">{{.FullName}}</p><p class="text-sm text-muted">{{.Email}}</p></td>
+                    <td class="text-sm">{{if .PostingTitle}}{{.PostingTitle}}{{else}}—{{end}}</td>
+                    <td class="text-sm text-subtle">{{if .Skills}}{{.Skills}}{{else}}—{{end}}</td>
+                    <td><button onclick='downloadCV({{.ID}})' class="hover:underline text-sm" style="color: var(--rose-pine);"><i class="fa-solid fa-download mr-1"></i>Download CV</button></td>
+                    <td>
+                        {{if eq .Status "rejected"}}
+                            <span class="text-sm text-muted">—</span>
+                        {{else if .HasEvaluation}}
+                            {{if .EvaluationCompleted}}
+                                <span class="badge badge-success">Evaluated</span>
+                            {{else if .EvaluationPending}}
+                                <span class="badge badge-warning">In Progress</span>
+                            {{else}}
+                                <span class="badge badge-info">In Progress</span>
+                            {{end}}
+                        {{else}}
+                            <span class="badge badge-danger">No Evaluation</span>
+                        {{end}}
+                    </td>
+                    <td><span class="badge {{if eq .Status "rejected"}}badge-danger{{else if eq .Status "hired"}}badge-success{{else}}badge-active{{end}}">{{.Status}}</span></td>
+                    <td class="text-right">
+                        {{if and (ne .Status "hired") (ne .Status "rejected")}}
+                            {{if .HasEvaluation}}
+                                {{if .EvaluationCompleted}}
+                                    <button onclick="document.getElementById('hire-candidate-{{.ID}}').showModal()" class="btn btn-sm" style="background: var(--rose-foam); color: white;">Accept Worker</button>
+                                    <dialog id="hire-candidate-{{.ID}}" class="dialog" style="max-width: 28rem;">
+                                        <form class="dialog-body" style="border-radius: 1rem;" method="post" action="/pages/candidates/{{.ID}}/hire" data-ajax data-close-dialog>
+                                            <div><h3 class="dialog-title">Accept {{.FullName}}</h3><p class="mt-1 text-sm text-muted">Creates an active worker account with the position from the job posting.</p></div>
+                                            <div class="form-group"><label class="form-label">Interview rating (1–5)</label><input type="number" name="rating" min="1" max="5" step="0.1" required class="form-input" placeholder="3.0"></div>
+                                            <div class="form-group"><label class="form-label">Temporary password</label><input type="password" name="temporary_password" minlength="8" required class="form-input" autocomplete="new-password"><p class="text-xs text-muted mt-1">Give this to the new worker securely.</p></div>
+                                            <div class="form-group"><label class="form-label">Assessment notes</label><textarea name="notes" rows="3" class="form-input" placeholder="Optional hiring notes"></textarea></div>
+                                            <div class="dialog-footer" style="border-top: 1px solid #f1f5f9; padding-top: 1rem;"><button type="button" onclick="this.closest('dialog').close()" class="btn btn-ghost">Cancel</button><button type="submit" class="btn btn-love">Accept worker</button></div>
+                                        </form>
+                                    </dialog>
+                                {{else}}
+                                    <span class="text-sm text-muted">Evaluation in progress</span>
+                                {{end}}
+                            {{else}}
+                                <button onclick="document.getElementById('eval-candidate-{{.ID}}').showModal()" class="btn btn-sm btn-iris">Assign Evaluation</button>
+                                <dialog id="eval-candidate-{{.ID}}" class="dialog" style="max-width: 28rem;">
+                                    <form class="dialog-body" style="border-radius: 1rem;" method="post" action="/pages/candidates/{{.ID}}/assign-eval" data-ajax data-close-dialog>
+                                        <div><h3 class="dialog-title">Assign Evaluation for {{.FullName}}</h3><p class="mt-1 text-sm text-muted">Assign an evaluator to assess this candidate before hiring.</p></div>
+                                        <div class="form-group">
+                                            <label class="form-label-sm">Evaluation Period</label>
+                                            <select name="evaluation_period_id" required class="form-select form-input-lg">
+                                                <option value="">Select a period</option>
+                                                {{range $.Periods}}<option value="{{.ID}}">#{{.ID}} · {{.Name}}</option>{{end}}
+                                            </select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label-sm">Evaluation Template</label>
+                                            <select name="evaluation_template_id" required class="form-select form-input-lg">
+                                                <option value="">Select a template</option>
+                                                {{range $.Templates}}<option value="{{.ID}}">#{{.ID}} · {{.Name}}</option>{{end}}
+                                            </select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label-sm">Evaluator</label>
+                                            <select name="evaluator_id" required class="form-select form-input-lg">
+                                                <option value="">Select a worker</option>
+                                                {{range $.Workers}}<option value="{{.UserID}}">{{.Name}} · {{.EmployeeCode}}</option>{{end}}
+                                            </select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label-sm">Due Date</label>
+                                            <input type="date" name="due_date" class="form-input form-input-lg">
+                                        </div>
+                                        <div class="dialog-footer" style="border-top: 1px solid #f1f5f9; padding-top: 1rem;"><button type="button" onclick="this.closest('dialog').close()" class="btn btn-ghost">Cancel</button><button type="submit" class="btn btn-love">Assign Evaluator</button></div>
+                                    </form>
+                                </dialog>
+                            {{end}}
+                        {{else}}
+                        <span class="text-sm font-medium" style="color: var(--rose-foam);">Accepted</span>
+                        {{end}}
+                    </td>
+                </tr>
+                {{else}}
+                <tr><td colspan="7" class="empty-state"><i class="fa-regular fa-file-lines empty-state-icon"></i>No CVs uploaded yet.</td></tr>
+                {{end}}
+            </tbody>
+        </table>
+    </div>
+
+    <dialog id="upload-cv-dialog" class="dialog" style="max-width: 32rem;">
+        <form id="upload-cv-form"
+              data-error-target="cv-upload-error"
+              class="p-6" style="display: flex; flex-direction: column; gap: 1.25rem; background: var(--rose-surface); border-radius: 1rem;" method="post" action="/pages/candidates" data-ajax>
+            <div class="flex items-start gap-3">
+                <span class="flex shrink-0 items-center justify-center" style="height: 2.5rem; width: 2.5rem; border-radius: 0.75rem; background: #e4eff2; color: var(--rose-pine);"><i class="fa-solid fa-file-arrow-up"></i></span>
+                <div><h3 class="text-lg font-semibold" style="color: var(--rose-text);">Add candidate CV</h3><p class="text-sm text-muted" style="margin-top: 0.125rem;">Add the candidate details, then choose their CV from your computer.</p></div>
+            </div>
+            <div id="cv-upload-error" class="hidden p-3 rounded-lg text-sm" style="background: #fef2f2; color: #b91c1c;" aria-live="polite"></div>
+            <div class="grid sm:grid-cols-2 gap-4">
+                <div><label class="form-label">Full name</label><input name="full_name" data-cv-name required class="form-input mt-1"></div>
+                <div><label class="form-label">Email</label><input type="email" name="email" data-cv-email required class="form-input mt-1"></div>
+                <div><label class="form-label">Phone</label><input name="phone" data-cv-phone class="form-input mt-1"></div>
+                <div><label class="form-label">Job Posting</label><select name="job_posting_id" class="form-select mt-1"><option value="">Select a posting (optional)</option>{{range .Postings}}<option value="{{.ID}}">{{.Title}} — {{.PositionName}}</option>{{end}}</select></div>
+            </div>
+            <div><label class="form-label">Skills</label><input name="skills" data-cv-skills placeholder="e.g. Go, project management" class="form-input mt-1"></div>
+            <div>
+                <span class="form-label">CV file</span>
+                <label class="relative mt-2 flex cursor-pointer flex-col items-center justify-center rounded-xl border-2 border-dashed" style="border-color: #9dbfc9; background: #f7fbfc; padding: 1.75rem 1.5rem; text-align: center; transition: all 0.15s ease;">
+                    <input type="file" name="cv" accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document" required class="sr-only">
+                    <i class="fa-solid fa-folder-open mb-2 text-xl" style="color: var(--rose-pine);"></i>
+                    <span class="font-medium" style="color: var(--rose-pine);">Choose CV from computer</span>
+                    <span class="text-xs text-muted mt-1">PDF, DOC, or DOCX · maximum 10 MB</span>
+                </label>
+            </div>
+            <div class="dialog-footer" style="border-top: 1px solid #f1f5f9; padding-top: 1rem;"><button type="button" onclick="this.closest('dialog').close()" class="btn btn-ghost">Cancel</button><button type="submit" class="btn btn-love">Save candidate</button></div>
+        </form>
+    </dialog>
+</div>
+<script>
+function downloadCV(id) {
+    var token = typeof getAuthToken === 'function' ? getAuthToken() : sessionStorage.getItem('token');
+    fetch('/api/candidates/' + id + '/cv', {
+        headers: { 'Authorization': 'Bearer ' + token }
+    }).then(function(res) {
+        if (!res.ok) throw new Error('Download failed');
+        return res.blob();
+    }).then(function(blob) {
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = '';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+    });
+}
+</script>
+{{end}}

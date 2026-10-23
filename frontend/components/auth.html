@@ -1,0 +1,99 @@
+<div id="auth-view" class="hidden auth-page">
+    <div class="auth-card-wrapper animate-scale-in">
+        
+        <div class="auth-brand">
+            <div class="auth-brand-icon">
+                <i class="fa-solid fa-seedling text-xl"></i>
+            </div>
+            <h1 class="auth-brand-title">EMS Enterprise</h1>
+            <p class="auth-brand-subtitle">Evaluation & Performance Management System</p>
+        </div>
+
+        <div class="auth-card-inner">
+            
+            <div class="auth-tab-bar">
+                <button type="button" id="tab-login" onclick="showLogin()" class="auth-tab-btn active">
+                    Sign In
+                </button>
+                <button type="button" id="tab-register" onclick="showRegister()" class="auth-tab-btn">
+                    Register
+                </button>
+            </div>
+
+            <div id="login-section" class="auth-section animate-fade-in">
+                <div id="login-error" class="hidden auth-error-box">
+                    <i class="fa-solid fa-circle-exclamation"></i>
+                    <span id="login-error-text">Login failed</span>
+                </div>
+
+                <form id="login-form" class="auth-form">
+                    <div class="auth-form-group">
+                        <label class="auth-form-label">Email Address</label>
+                        <div class="auth-input-wrapper">
+                            <i class="fa-solid fa-envelope auth-input-icon"></i>
+                            <input type="email" name="email" required placeholder="name@company.com" 
+                                class="auth-input">
+                        </div>
+                    </div>
+                    <div class="auth-form-group">
+                        <div class="flex justify-between items-center" style="margin-bottom: 0.375rem;">
+                            <label class="auth-form-label">Password</label>
+                        </div>
+                        <div class="auth-input-wrapper">
+                            <i class="fa-solid fa-lock auth-input-icon"></i>
+                            <input type="password" name="password" required placeholder="••••••••" 
+                                class="auth-input">
+                        </div>
+                    </div>
+                    <button type="submit" class="auth-submit">
+                        <span>Sign In</span>
+                        <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                </form>
+            </div>
+
+            <div id="register-section" class="hidden auth-section animate-fade-in">
+                <div id="register-error" class="hidden auth-error-box">
+                    <i class="fa-solid fa-circle-exclamation"></i>
+                    <span id="register-error-text">Registration failed</span>
+                </div>
+
+                <form id="register-form" class="auth-form">
+                    <div class="auth-form-group">
+                        <label class="auth-form-label">Full Name</label>
+                        <div class="auth-input-wrapper">
+                            <i class="fa-solid fa-user auth-input-icon"></i>
+                            <input type="text" name="name" required placeholder="John Doe" 
+                                class="auth-input">
+                        </div>
+                    </div>
+                    <div class="auth-form-group">
+                        <label class="auth-form-label">Work Email</label>
+                        <div class="auth-input-wrapper">
+                            <i class="fa-solid fa-envelope auth-input-icon"></i>
+                            <input type="email" name="email" required placeholder="name@company.com" 
+                                class="auth-input">
+                        </div>
+                    </div>
+                    <div class="auth-form-group">
+                        <label class="auth-form-label">Password</label>
+                        <div class="auth-input-wrapper">
+                            <i class="fa-solid fa-lock auth-input-icon"></i>
+                            <input type="password" name="password" required minlength="6" placeholder="Min. 6 characters" 
+                                class="auth-input">
+                        </div>
+                    </div>
+                    <button type="submit" class="auth-submit">
+                        <span>Create Account</span>
+                        <i class="fa-solid fa-user-plus"></i>
+                    </button>
+                </form>
+            </div>
+
+        </div>
+
+        <p class="auth-footer">
+            &copy; 2026 Evaluation Management System &bull; Rosé Pine Dawn
+        </p>
+    </div>
+</div>

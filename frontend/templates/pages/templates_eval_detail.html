@@ -1,0 +1,138 @@
+{{define "page-template-detail"}}
+<div class="space-y-6">
+    <div class="page-header">
+        <div class="page-header-left">
+            <a href="/pages/templates-eval" class="btn btn-ghost btn-sm" style="margin-bottom: 0.5rem;"><i class="fa-solid fa-arrow-left text-xs"></i> All templates</a>
+            <h3 class="page-title">{{.Template.Name}}</h3>
+            <p class="page-subtitle">{{if .Template.Description}}{{.Template.Description}}{{else}}No description yet{{end}}</p>
+        </div>
+        <div class="page-actions">
+            {{if .PeriodID}}
+            <form method="post" action="/pages/cycle/back/template" data-ajax>
+                <input type="hidden" name="period_id" value="{{.PeriodID}}">
+                <button type="submit" class="btn btn-primary">Continue your cycle <i class="fa-solid fa-arrow-right text-xs"></i></button>
+            </form>
+            {{end}}
+            <span class="badge {{if eq .Template.Status "active"}}badge-active{{else}}badge-inactive{{end}}">{{.Template.Status}}</span>
+        </div>
+    </div>
+
+    {{if .ErrMessage}}
+    <div class="wizard-alert">
+        <i class="fa-solid fa-circle-exclamation"></i>
+        <span>{{.ErrMessage}}</span>
+    </div>
+    {{end}}
+    {{if .Notice}}
+    <div class="tpl-banner tpl-banner-ok">
+        <i class="fa-solid fa-circle-check"></i>
+        <span>{{.Notice}}</span>
+    </div>
+    {{end}}
+
+    {{if .Ready}}
+    <div class="tpl-banner tpl-banner-ok">
+        <i class="fa-solid fa-circle-check"></i>
+        <span>Ready to use &mdash; {{.QuestionCount}} question{{if ne .QuestionCount 1}}s{{end}} across {{len .Sections}} section{{if ne (len .Sections) 1}}s{{end}}.</span>
+        <a href="/pages/cycle" class="btn btn-primary btn-sm">Start a cycle</a>
+    </div>
+    {{else}}
+    <div class="tpl-banner tpl-banner-warn">
+        <i class="fa-solid fa-triangle-exclamation"></i>
+        <span><strong>This template cannot be used yet.</strong> It has no questions, so every evaluation created from it would score 0%. Add a section below, then a question inside it.</span>
+    </div>
+    {{end}}
+
+    {{if .Sections}}
+    {{range .Sections}}
+    <div class="card card-padded">
+        <div class="flex flex-row items-start justify-between gap-3" style="margin-bottom: 1rem;">
+            <div>
+                <h4 class="wizard-card-title" style="margin-bottom: 0.25rem;">{{.Position}}. {{.Section.Name}}</h4>
+                {{if .Section.Description}}<p class="wizard-card-hint" style="margin: 0;">{{.Section.Description}}</p>{{end}}
+            </div>
+            <button type="button" onclick="if(confirm('Delete this section and all of its questions?')) emsRequest('DELETE', '/pages/sections/{{.Section.ID}}?period_id={{$.PeriodID}}', '#page');" class="btn btn-ghost" style="padding: 0.375rem 0.625rem; font-size: 0.875rem; color: #e06c75;"><i class="fa-solid fa-trash"></i></button>
+        </div>
+
+        {{if .Questions}}
+        <div class="tpl-question-list">
+            {{range .Questions}}
+            <div class="tpl-question-row">
+                <div class="tpl-question-body">
+                    <div class="tpl-question-text">
+                        {{.Question}}{{if .IsRequired}}<span class="eval-question-required"> *</span>{{end}}
+                    </div>
+                    {{if .Description}}<div class="tpl-question-desc">{{.Description}}</div>{{end}}
+                </div>
+                <div class="tpl-question-meta">
+                    {{if eq .QuestionType "rating"}}<span class="badge badge-active">rating</span>
+                    {{else if eq .QuestionType "text"}}<span class="badge badge-info">text</span>
+                    {{else if eq .QuestionType "number"}}<span class="badge badge-info">number</span>
+                    {{else if eq .QuestionType "boolean"}}<span class="badge badge-info">yes / no</span>
+                    {{else}}<span class="badge badge-inactive">{{.QuestionType}}</span>{{end}}
+                    {{if eq .QuestionType "rating"}}<span class="text-xs text-muted">weight {{.Weight}}</span>{{end}}
+                    <button type="button" onclick="if(confirm('Delete this question?')) emsRequest('DELETE', '/pages/questions/{{.ID}}?period_id={{$.PeriodID}}', '#page');" class="btn btn-ghost" style="padding: 0.25rem 0.5rem; font-size: 0.8125rem; color: #e06c75;"><i class="fa-solid fa-trash"></i></button>
+                </div>
+            </div>
+            {{end}}
+        </div>
+        {{else}}
+        <div class="empty-state" style="padding: 1.5rem;">
+            <span class="empty-state-icon"><i class="fa-regular fa-circle-question"></i></span>
+            No questions in this section yet.
+        </div>
+        {{end}}
+
+        <form class="tpl-add-form" method="post" action="/pages/sections/{{.Section.ID}}/questions" data-ajax>
+            <input type="hidden" name="period_id" value="{{$.PeriodID}}">
+            <div class="form-group">
+                <label class="form-label-sm">Add a question</label>
+                <input type="text" name="question" required class="form-input" placeholder="e.g. Meets expectations in their day-to-day work">
+            </div>
+            <div class="form-group">
+                <label class="form-label-sm">Help text (optional)</label>
+                <input type="text" name="description" class="form-input" placeholder="Shown under the question when someone answers it">
+            </div>
+            <div class="tpl-add-row">
+                <div class="form-group" style="flex: 2 1 14rem;">
+                    <label class="form-label-sm">Type</label>
+                    <select name="question_type" class="form-select">
+                        {{range $.QuestionTypes}}<option value="{{.Value}}">{{.Label}} &mdash; {{.Hint}}</option>{{end}}
+                    </select>
+                </div>
+                <div class="form-group" style="flex: 0 1 7rem;">
+                    <label class="form-label-sm">Weight</label>
+                    <input type="number" name="weight" min="0" step="0.5" value="1" class="form-input">
+                </div>
+                <div class="form-group" style="flex: 0 0 auto;">
+                    <label class="form-label-sm">Required</label>
+                    <label class="tpl-check"><input type="checkbox" name="is_required" value="yes" checked> Yes</label>
+                </div>
+                <button type="submit" class="btn btn-ghost" style="align-self: flex-end;">Add question</button>
+            </div>
+        </form>
+    </div>
+    {{end}}
+    {{else}}
+    <div class="empty-state">
+        <span class="empty-state-icon"><i class="fa-solid fa-layer-group"></i></span>
+        No sections yet. Add the first one below &mdash; a section is a heading, and questions live inside it.
+    </div>
+    {{end}}
+
+    <div class="card card-padded">
+        <form class="tpl-add-form" method="post" action="/pages/templates-eval/{{.Template.ID}}/sections" data-ajax>
+            <input type="hidden" name="period_id" value="{{.PeriodID}}">
+            <div class="form-group">
+                <label class="form-label-sm">New section name</label>
+                <input type="text" name="name" required class="form-input" placeholder="e.g. Reliability, Communication, Technical skill">
+            </div>
+            <div class="form-group">
+                <label class="form-label-sm">Section description (optional)</label>
+                <input type="text" name="description" class="form-input" placeholder="What this group of questions covers">
+            </div>
+            <button type="submit" class="btn btn-primary"><i class="fa-solid fa-plus text-xs"></i> Add section</button>
+        </form>
+    </div>
+</div>
+{{end}}

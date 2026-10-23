@@ -1,0 +1,62 @@
+{{define "page-cv-submit"}}
+<div class="space-y-6" id="cv-submit-page">
+    <div class="page-header">
+        <div class="page-header-left">
+            <h3 class="page-title">Submit Your CV</h3>
+            <p class="page-subtitle">Apply for a position at our organization</p>
+        </div>
+    </div>
+
+    <div class="card-section">
+        <div id="cv-submit-success" class="hidden">
+            <div class="text-center py-8">
+                <i class="fa-solid fa-circle-check text-4xl" style="color: var(--rose-foam);"></i>
+                <h4 class="text-lg font-bold mt-4" style="color: var(--rose-text);">Application Submitted!</h4>
+                <p class="mt-2" style="color: var(--rose-subtle);">Thank you for your interest. We will review your application and get back to you.</p>
+            </div>
+        </div>
+
+        <form id="cv-submit-form" class="dialog-body" method="post" action="/apply" data-ajax>
+            {{if .PostingID}}
+            <input type="hidden" name="job_posting_id" value="{{.PostingID}}">
+            <div class="p-3 rounded-lg mb-2" style="background: #e8f3f5; border: 1px solid #bce1d2;">
+                <p class="text-sm font-medium" style="color: var(--rose-pine);"><i class="fa-solid fa-briefcase mr-1"></i> Applying for: <strong>{{.PositionName}}</strong></p>
+            </div>
+            {{end}}
+            <div class="form-group">
+                <label class="form-label-sm">Full Name *</label>
+                <input type="text" name="full_name" required class="form-input form-input-lg" placeholder="Your full name">
+            </div>
+            <div class="form-group">
+                <label class="form-label-sm">Email *</label>
+                <input type="email" name="email" required class="form-input form-input-lg" placeholder="you@example.com">
+            </div>
+            <div class="form-group">
+                <label class="form-label-sm">Phone</label>
+                <input type="tel" name="phone" class="form-input form-input-lg" placeholder="+1 234 567 890">
+            </div>
+            <div class="form-group">
+                <label class="form-label-sm">Desired Position *</label>
+                <select name="position_id" required class="form-select form-input-lg">
+                    <option value="">Select a position</option>
+                    {{range .Positions}}
+                    <option value="{{.ID}}" {{if and $.PostingID (eq .Name $.PositionName)}}selected{{end}}>{{.Name}}</option>
+                    {{end}}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label-sm">Skills</label>
+                <input type="text" name="skills" class="form-input form-input-lg" placeholder="e.g. Go, JavaScript, Python">
+            </div>
+            <div class="form-group">
+                <label class="form-label-sm">CV File (PDF, DOC, DOCX — max 10 MB) *</label>
+                <input type="file" name="cv" accept=".pdf,.doc,.docx" required class="form-input form-input-lg">
+            </div>
+            <div data-form-status id="cv-submit-error" class="mb-2 text-sm" aria-live="polite"></div>
+            <div class="dialog-footer">
+                <button type="submit" class="btn btn-love">Submit Application</button>
+            </div>
+        </form>
+    </div>
+</div>
+{{end}}

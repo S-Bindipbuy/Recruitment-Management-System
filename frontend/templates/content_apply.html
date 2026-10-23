@@ -1,0 +1,71 @@
+<div class="space-y-6">
+    <div class="public-page-header" style="text-align: center;">
+        <h1 class="public-page-title">Apply Now</h1>
+        <p class="public-page-subtitle">Submit your application to join our team</p>
+    </div>
+
+    <div class="public-form-card" style="max-width: 40rem; margin: 0 auto; padding: 0; overflow: hidden;">
+        {{if .Posting}}
+        <div style="padding: 1.5rem 2rem; background: var(--rose-overlay); border-bottom: 1px solid var(--rose-border);">
+            <h2 style="font-size: 1.125rem; font-weight: 700; color: var(--rose-text); margin: 0 0 0.25rem;">{{.Posting.Title}}</h2>
+            {{if and .Posting.SalaryMin .Posting.SalaryMax}}
+            <span style="display: inline-flex; align-items: center; gap: 0.375rem; font-size: 0.875rem; color: var(--rose-pine); font-weight: 600;">
+                <i class="fa-solid fa-dollar-sign" style="font-size: 0.75rem;"></i>
+                ${{printf "%.0f" (derefFloat .Posting.SalaryMin)}} - ${{printf "%.0f" (derefFloat .Posting.SalaryMax)}}
+            </span>
+            {{end}}
+        </div>
+        {{end}}
+
+        <div style="padding: 2rem;">
+            <div id="apply-success" class="public-success hidden">
+                <i class="fa-solid fa-circle-check public-success-icon"></i>
+                <h3 class="public-success-title">Application Submitted!</h3>
+                <p class="public-success-text">Thank you for your interest. We will review your application and get back to you.</p>
+                <a href="/jobs" class="btn btn-primary" style="margin-top: 1.5rem;">View More Positions</a>
+            </div>
+
+            <div id="apply-error" class="hidden" style="text-align:center;padding:1.5rem;">
+                <p style="color:#b91c1c;font-weight:600;" id="apply-error-msg"></p>
+                <a href="javascript:location.reload()" class="btn btn-primary" style="margin-top:1rem;">Try Again</a>
+            </div>
+
+            <form id="apply-form"
+                  data-swap="none" method="post" action="/apply" data-ajax>
+
+                {{if .PostingID}}
+                <input type="hidden" name="job_posting_id" value="{{.PostingID}}">
+                {{end}}
+
+                <div class="public-form-group">
+                    <label class="public-form-label">Full Name *</label>
+                    <input type="text" name="full_name" required class="public-form-input" placeholder="Your full name">
+                </div>
+
+                <div class="public-form-group">
+                    <label class="public-form-label">Email *</label>
+                    <input type="email" name="email" required class="public-form-input" placeholder="you@example.com">
+                </div>
+
+                <div class="public-form-group">
+                    <label class="public-form-label">Phone</label>
+                    <input type="tel" name="phone" class="public-form-input" placeholder="+1 234 567 890">
+                </div>
+
+                <div class="public-form-group">
+                    <label class="public-form-label">Skills</label>
+                    <input type="text" name="skills" class="public-form-input" placeholder="e.g. Go, JavaScript, Python">
+                </div>
+
+                <div class="public-form-group">
+                    <label class="public-form-label">CV File (PDF, DOC, DOCX — max 10 MB) *</label>
+                    <input type="file" name="cv" accept=".pdf,.doc,.docx" required class="public-form-file">
+                </div>
+
+                <button type="submit" class="public-form-submit">
+                    <i class="fa-solid fa-paper-plane mr-1"></i> Submit Application
+                </button>
+            </form>
+        </div>
+    </div>
+</div>

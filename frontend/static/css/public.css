@@ -1,0 +1,405 @@
+/* ── Public Pages Layout ── */
+
+.public-body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--rose-base);
+}
+
+/* ── Navigation ── */
+.public-nav {
+    background: var(--rose-surface);
+    border-bottom: 1px solid var(--rose-border);
+    position: sticky;
+    top: 0;
+    z-index: 50;
+    box-shadow: 0 1px 3px 0 rgba(87, 82, 121, 0.05);
+}
+
+.public-nav-inner {
+    max-width: 72rem;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+    height: 4rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.public-nav-brand {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    text-decoration: none;
+    font-weight: 800;
+    font-size: 1.125rem;
+    color: var(--rose-text);
+}
+
+.public-nav-logo {
+    height: 2.25rem;
+    width: 2.25rem;
+    border-radius: 0.75rem;
+    background: linear-gradient(to top right, var(--rose-pine), var(--rose-foam));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 700;
+}
+
+.public-nav-links {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.public-nav-link {
+    padding: 0.5rem 1rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--rose-subtle);
+    text-decoration: none;
+    border-radius: 0.5rem;
+    transition: all 0.15s ease;
+}
+
+.public-nav-link:hover {
+    background-color: var(--rose-overlay);
+    color: var(--rose-text);
+}
+
+/* ── Main Content ── */
+.public-main {
+    flex: 1;
+    padding: 2rem 1.5rem;
+}
+
+.public-container {
+    max-width: 64rem;
+    margin: 0 auto;
+}
+
+/* ── Page Header ── */
+.public-page-header {
+    margin-bottom: 2rem;
+}
+
+.public-page-title {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: var(--rose-text);
+    letter-spacing: -0.025em;
+}
+
+.public-page-subtitle {
+    font-size: 0.875rem;
+    color: var(--rose-subtle);
+    margin-top: 0.5rem;
+}
+
+/* ── Job Cards ── */
+.public-job-card {
+    background: var(--rose-surface);
+    border: 1px solid var(--rose-border);
+    border-radius: 1rem;
+    padding: 1.5rem;
+    box-shadow: 0 1px 3px 0 rgba(87, 82, 121, 0.05);
+    transition: all 0.15s ease;
+}
+
+.public-job-card:hover {
+    box-shadow: 0 4px 6px -1px rgba(87, 82, 121, 0.08);
+    border-color: var(--rose-foam);
+}
+
+.public-job-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--rose-text);
+    margin: 0;
+}
+
+.public-job-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-top: 0.75rem;
+    font-size: 0.875rem;
+    color: var(--rose-subtle);
+}
+
+.public-job-meta-item {
+    display: flex;
+    align-items: center;
+    gap: 0.375rem;
+}
+
+.public-job-meta-item i {
+    color: var(--rose-foam);
+    font-size: 0.75rem;
+}
+
+.public-job-description {
+    margin-top: 1rem;
+    font-size: 0.875rem;
+    color: var(--rose-subtle);
+    line-height: 1.6;
+}
+
+.public-job-skills {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--rose-border);
+}
+
+.public-job-skills-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--rose-text);
+    margin-bottom: 0.5rem;
+}
+
+.public-job-skills-text {
+    font-size: 0.875rem;
+    color: var(--rose-subtle);
+    line-height: 1.6;
+}
+
+.public-job-requirements {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--rose-border);
+}
+
+.public-job-requirements-title {
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--rose-text);
+    margin-bottom: 0.5rem;
+}
+
+.public-job-requirements-text {
+    font-size: 0.875rem;
+    color: var(--rose-subtle);
+    line-height: 1.6;
+}
+
+.public-job-footer {
+    margin-top: 1.25rem;
+    display: flex;
+    justify-content: flex-end;
+}
+
+/* ── Apply Form ── */
+.public-form-card {
+    background: var(--rose-surface);
+    border: 1px solid var(--rose-border);
+    border-radius: 1rem;
+    padding: 2rem;
+    box-shadow: 0 1px 3px 0 rgba(87, 82, 121, 0.05);
+    max-width: 32rem;
+    margin: 0 auto;
+}
+
+.public-form-title {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--rose-text);
+    text-align: center;
+    margin-bottom: 0.5rem;
+}
+
+.public-form-subtitle {
+    font-size: 0.875rem;
+    color: var(--rose-subtle);
+    text-align: center;
+    margin-bottom: 1.5rem;
+}
+
+.public-form-banner {
+    padding: 0.75rem 1rem;
+    border-radius: 0.75rem;
+    background: var(--rose-foam-bg);
+    border: 1px solid #bce1d2;
+    margin-bottom: 1.5rem;
+}
+
+.public-form-banner-text {
+    font-size: 0.875rem;
+    font-weight: 500;
+    color: var(--rose-pine);
+}
+
+.public-form-group {
+    margin-bottom: 1.25rem;
+}
+
+.public-form-label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 700;
+    color: var(--rose-text);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.5rem;
+}
+
+.public-form-input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--rose-border);
+    border-radius: 0.75rem;
+    font-size: 0.875rem;
+    background: var(--rose-base);
+    color: var(--rose-text);
+    transition: all 0.15s ease;
+}
+
+.public-form-input:focus {
+    outline: none;
+    border-color: var(--rose-pine);
+    background: var(--rose-surface);
+    box-shadow: 0 0 0 3px rgba(40, 105, 131, 0.15);
+}
+
+.public-form-select {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--rose-border);
+    border-radius: 0.75rem;
+    font-size: 0.875rem;
+    background: var(--rose-base);
+    color: var(--rose-text);
+    appearance: auto;
+    transition: all 0.15s ease;
+}
+
+.public-form-select:focus {
+    outline: none;
+    border-color: var(--rose-pine);
+    background: var(--rose-surface);
+    box-shadow: 0 0 0 3px rgba(40, 105, 131, 0.15);
+}
+
+.public-form-file {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--rose-border);
+    border-radius: 0.75rem;
+    font-size: 0.875rem;
+    background: var(--rose-base);
+}
+
+.public-form-submit {
+    width: 100%;
+    padding: 0.75rem 1.5rem;
+    background: var(--rose-love);
+    color: white;
+    font-weight: 600;
+    font-size: 0.875rem;
+    border: none;
+    border-radius: 0.75rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    box-shadow: 0 4px 6px -1px rgba(180, 99, 122, 0.2);
+}
+
+.public-form-submit:hover {
+    background: #92475b;
+}
+
+.public-form-submit:active {
+    transform: scale(0.98);
+}
+
+/* ── Success State ── */
+.public-success {
+    text-align: center;
+    padding: 3rem 1.5rem;
+}
+
+.public-success-icon {
+    font-size: 3rem;
+    color: var(--rose-foam);
+    margin-bottom: 1rem;
+}
+
+.public-success-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--rose-text);
+    margin-bottom: 0.5rem;
+}
+
+.public-success-text {
+    font-size: 0.875rem;
+    color: var(--rose-subtle);
+}
+
+/* ── Empty State ── */
+.public-empty {
+    text-align: center;
+    padding: 4rem 1.5rem;
+}
+
+.public-empty-icon {
+    font-size: 3rem;
+    color: var(--rose-border);
+    margin-bottom: 1rem;
+}
+
+.public-empty-text {
+    font-size: 0.875rem;
+    color: var(--rose-muted);
+}
+
+/* ── Footer ── */
+.public-footer {
+    background: var(--rose-overlay);
+    border-top: 1px solid var(--rose-border);
+    padding: 1.5rem;
+    margin-top: auto;
+}
+
+.public-footer-inner {
+    max-width: 72rem;
+    margin: 0 auto;
+    text-align: center;
+    font-size: 0.875rem;
+    color: var(--rose-muted);
+}
+
+/* ── Responsive ── */
+@media (max-width: 640px) {
+    .public-nav-inner {
+        padding: 0 1rem;
+    }
+
+    .public-nav-links {
+        gap: 0.25rem;
+    }
+
+    .public-nav-link {
+        padding: 0.5rem 0.75rem;
+        font-size: 0.8125rem;
+    }
+
+    .public-main {
+        padding: 1.5rem 1rem;
+    }
+
+    .public-page-title {
+        font-size: 1.5rem;
+    }
+
+    .public-job-meta {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .public-form-card {
+        padding: 1.5rem;
+    }
+}

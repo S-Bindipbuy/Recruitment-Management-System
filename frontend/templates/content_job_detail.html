@@ -1,0 +1,49 @@
+<div class="space-y-6">
+    <div class="public-page-header">
+        <a href="/jobs" class="inline-flex items-center gap-2 mb-4" style="color: var(--rose-pine); font-size: 0.875rem; font-weight: 500; text-decoration: none;">
+            <i class="fa-solid fa-arrow-left"></i> Back to all positions
+        </a>
+        <h1 class="public-page-title">{{.Posting.Title}}</h1>
+        <div class="public-job-meta">
+            <span class="public-job-meta-item"><i class="fa-solid fa-building"></i>{{.Posting.DepartmentName}}</span>
+            <span class="public-job-meta-item"><i class="fa-solid fa-briefcase"></i>{{.Posting.PositionName}}</span>
+            <span class="public-job-meta-item"><i class="fa-solid fa-clock"></i>{{.Posting.EmploymentType}}</span>
+        </div>
+    </div>
+
+    <div class="public-form-card" style="max-width: 48rem; margin: 0 auto;">
+        {{if .Posting.SkillsRequired}}
+        <div class="public-job-skills">
+            <p class="public-job-skills-title">Required Skills</p>
+            <p class="public-job-skills-text">{{.Posting.SkillsRequired}}</p>
+        </div>
+        {{end}}
+
+        {{if and .Posting.SalaryMin .Posting.SalaryMax}}
+        <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--rose-border);">
+            <p style="font-size: 0.875rem; font-weight: 600; color: var(--rose-text); margin-bottom: 0.5rem;">Salary Range</p>
+            <p style="font-size: 0.875rem; color: var(--rose-subtle);">${{printf "%.0f" (derefFloat .Posting.SalaryMin)}} - ${{printf "%.0f" (derefFloat .Posting.SalaryMax)}}</p>
+        </div>
+        {{end}}
+
+        {{if .Posting.Description}}
+        <div class="public-job-requirements">
+            <p class="public-job-requirements-title">Description</p>
+            <p class="public-job-requirements-text">{{.Posting.Description}}</p>
+        </div>
+        {{end}}
+
+        {{if .Posting.Requirements}}
+        <div style="margin-top: 1rem; padding-top: 1rem; border-top: 1px solid var(--rose-border);">
+            <p style="font-size: 0.875rem; font-weight: 600; color: var(--rose-text); margin-bottom: 0.5rem;">Requirements</p>
+            <p style="font-size: 0.875rem; color: var(--rose-subtle); line-height: 1.6;">{{.Posting.Requirements}}</p>
+        </div>
+        {{end}}
+
+        <div class="public-job-footer">
+            <a href="/apply?posting_id={{.Posting.ID}}" class="btn btn-primary" style="padding: 0.75rem 2rem;">
+                <i class="fa-solid fa-paper-plane mr-1"></i> Apply Now
+            </a>
+        </div>
+    </div>
+</div>

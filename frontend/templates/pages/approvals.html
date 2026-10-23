@@ -1,0 +1,85 @@
+{{define "page-approvals"}}
+<div class="space-y-6" id="approvals-page">
+    <div class="page-header">
+        <div class="page-header-left">
+            <h3 class="page-title">Pending Approvals</h3>
+            <p class="page-subtitle">Review and decide on evaluation assignment approvals</p>
+        </div>
+        <button onclick="document.getElementById('request-approval-dialog').showModal()" class="btn btn-primary">
+            <i class="fa-solid fa-plus text-xs"></i> Request Approval
+        </button>
+    </div>
+
+    <div class="card-section">
+        <table>
+            <thead class="table-head">
+                <tr>
+                    <th>Assignment</th>
+                    <th>Evaluatee</th>
+                    <th>Approver</th>
+                    <th>Level</th>
+                    <th>Status</th>
+                    <th>Date Created</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{if .Approvals}}
+                {{range .Approvals}}
+                <tr>
+                    <td class="table-cell-bold">#{{.Approval.EvaluationAssignmentID}}</td>
+                    <td class="table-cell-muted">{{if .EvaluateeName}}{{.EvaluateeName}}{{else}}-{{end}}</td>
+                    <td class="table-cell-muted">{{.ApproverName}}</td>
+                    <td class="table-cell-muted">Level {{.Approval.Level}}</td>
+                    <td><span class="badge {{if eq .Approval.Status "approved"}}badge-neutral{{else if eq .Approval.Status "rejected"}}badge-danger{{else}}badge-warning{{end}}">{{.Approval.Status}}</span></td>
+                    <td class="text-sm text-muted">{{.Approval.CreatedAt.Format "Jan 2, 2006"}}</td>
+                    <td>
+                        <details class="approval-dropdown">
+                            <summary>Review &amp; Decide</summary>
+                            <form class="approval-form">
+                                <input type="text" name="comment" placeholder="Comments (optional)" class="approval-comment-input">
+                                <div class="approval-actions">
+                                    <button class="approve-btn" type="button" data-url="/pages/approvals/{{.Approval.ID}}/approve" data-request="POST">Approve</button>
+                                    <button class="reject-btn" type="button" data-url="/pages/approvals/{{.Approval.ID}}/reject" data-request="POST">Reject</button>
+                                </div>
+                            </form>
+                        </details>
+                    </td>
+                </tr>
+                {{end}}
+                {{else}}
+                <tr><td colspan="7" class="text-center text-muted" style="padding: 2rem;">No pending approvals. Use "Request Approval" to create one or submit an evaluation.</td></tr>
+                {{end}}
+            </tbody>
+        </table>
+    </div>
+
+    <dialog id="request-approval-dialog" class="dialog">
+        <form class="dialog-body" method="post" action="/pages/approvals" data-ajax data-close-dialog>
+            <h3 class="dialog-title">Request Evaluation Approval</h3>
+            <div class="form-group">
+                <label class="form-label-sm">Assignment</label>
+                <select name="assignment_id" required class="form-select form-input-lg">
+                    <option value="">Select an assignment</option>
+                    {{range .Assignable}}<option value="{{.ID}}">{{.Label}}</option>{{end}}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label-sm">Approver</label>
+                <select name="approver_id" required class="form-select form-input-lg">
+                    <option value="">Select a worker</option>
+                    {{range .Workers}}<option value="{{.UserID}}">{{.Name}} · {{.EmployeeCode}}</option>{{end}}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label-sm">Approval Level</label>
+                <input type="number" name="level" value="1" required class="form-input form-input-lg">
+            </div>
+            <div class="dialog-footer">
+                <button type="button" onclick="this.closest('dialog').close()" class="btn btn-ghost">Cancel</button>
+                <button type="submit" class="btn btn-love">Submit Request</button>
+            </div>
+        </form>
+    </dialog>
+</div>
+{{end}}

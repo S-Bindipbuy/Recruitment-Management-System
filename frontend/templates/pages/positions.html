@@ -1,0 +1,119 @@
+{{define "page-positions"}}
+<div class="space-y-6" id="positions-page">
+    <div class="page-header">
+        <div class="page-header-left">
+            <h3 class="page-title">Positions</h3>
+            <p class="page-subtitle">Manage job positions</p>
+        </div>
+        <div class="page-actions">
+            <button onclick="document.getElementById('new-position-dialog').showModal()" class="btn btn-primary"><i class="fa-solid fa-plus text-xs"></i> Add Position</button>
+        </div>
+    </div>
+
+    <div class="table-container">
+        <table>
+            <thead class="table-head">
+                <tr>
+                    <th>Name</th>
+                    <th>Department</th>
+                    <th>Description</th>
+                    <th>Status</th>
+                    <th style="width: 120px;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{if .Positions}}
+                {{range .Positions}}
+                <tr>
+                    <td class="table-cell-bold">{{.Position.Name}}</td>
+                    <td class="table-cell-muted">{{.DepartmentName}}</td>
+                    <td>{{.Position.Description}}</td>
+                    <td><span class="badge {{if eq .Position.Status "active"}}badge-active{{else}}badge-inactive{{end}}">{{.Position.Status}}</span></td>
+                    <td>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button data-id="{{.Position.ID}}" data-name="{{.Position.Name}}" data-dept-id="{{.Position.DepartmentID}}" data-description="{{.Position.Description}}" data-status="{{.Position.Status}}" onclick="openEditPosition(this)" class="btn btn-ghost" style="padding: 0.375rem 0.625rem; font-size: 0.875rem;"><i class="fa-solid fa-pen"></i></button>
+                            <button onclick="deletePosition({{.Position.ID}})" class="btn btn-ghost" style="padding: 0.375rem 0.625rem; font-size: 0.875rem; color: #e06c75;"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                    </td>
+                </tr>
+                {{end}}
+                {{else}}
+                <tr><td colspan="5" class="text-center text-muted">No positions found</td></tr>
+                {{end}}
+            </tbody>
+        </table>
+    </div>
+
+    <dialog id="new-position-dialog" class="dialog">
+        <form class="dialog-body" method="post" action="/pages/positions" data-ajax data-close-dialog>
+            <h3 class="dialog-title">New Position</h3>
+            <div class="form-group">
+                <label class="form-label-sm">Name</label>
+                <input type="text" name="name" required class="form-input form-input-lg" placeholder="e.g. Software Engineer">
+            </div>
+            <div class="form-group">
+                <label class="form-label-sm">Department</label>
+                <select name="department_id" required class="form-select form-input-lg">
+                    <option value="">Select a department</option>
+                    {{range .Departments}}<option value="{{.ID}}">{{.Name}}</option>{{end}}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label-sm">Description</label>
+                <textarea name="description" class="form-textarea" placeholder="Optional description"></textarea>
+            </div>
+            <div class="dialog-footer">
+                <button type="button" onclick="this.closest('dialog').close()" class="btn btn-ghost">Cancel</button>
+                <button type="submit" class="btn btn-love">Create Position</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog id="edit-position-dialog" class="dialog">
+        <form id="edit-position-form" class="dialog-body" method="post" data-ajax data-method="PUT" data-close-dialog>
+            <h3 class="dialog-title">Edit Position</h3>
+            <div class="form-group">
+                <label class="form-label-sm">Name</label>
+                <input type="text" name="name" id="edit-pos-name" required class="form-input form-input-lg">
+            </div>
+            <div class="form-group">
+                <label class="form-label-sm">Department</label>
+                <select name="department_id" id="edit-pos-dept" required class="form-select form-input-lg">
+                    {{range .Departments}}<option value="{{.ID}}">{{.Name}}</option>{{end}}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label-sm">Description</label>
+                <textarea name="description" id="edit-pos-description" class="form-textarea"></textarea>
+            </div>
+            <div class="form-group">
+                <label class="form-label-sm">Status</label>
+                <select name="status" id="edit-pos-status" class="form-select form-input-lg">
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                </select>
+            </div>
+            <div class="dialog-footer">
+                <button type="button" onclick="this.closest('dialog').close()" class="btn btn-ghost">Cancel</button>
+                <button type="submit" class="btn btn-love">Save Changes</button>
+            </div>
+        </form>
+    </dialog>
+</div>
+
+<script>
+function openEditPosition(el) {
+    var ds = el.dataset;
+    document.getElementById('edit-pos-name').value = ds.name || '';
+    document.getElementById('edit-pos-dept').value = ds.deptId || '';
+    document.getElementById('edit-pos-description').value = ds.description || '';
+    document.getElementById('edit-pos-status').value = ds.status || 'active';
+    document.getElementById('edit-position-form').dataset.url = '/pages/positions/' + ds.id;
+    document.getElementById('edit-position-dialog').showModal();
+}
+function deletePosition(id) {
+    if (!confirm('Are you sure you want to delete this position?')) return;
+    emsRequest('DELETE', '/pages/positions/' + id, '#page');
+}
+</script>
+{{end}}

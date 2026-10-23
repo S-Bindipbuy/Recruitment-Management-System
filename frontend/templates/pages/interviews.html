@@ -1,0 +1,76 @@
+{{define "page-interviews"}}
+<div class="space-y-6" id="interviews-page">
+    <div class="page-header flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+            <h3 class="page-title">Interview Scheduling</h3>
+            <p class="page-subtitle">Schedule and manage candidate interviews.</p>
+        </div>
+        <button onclick="document.getElementById('schedule-interview-dialog').showModal()" class="btn btn-primary">
+            <i class="fa-solid fa-plus text-xs"></i> Schedule Interview
+        </button>
+    </div>
+
+    <div class="table-container overflow-x-auto">
+        <table>
+            <thead class="table-head"><tr>
+                <th>Candidate</th>
+                <th>Round</th>
+                <th>Interviewer</th>
+                <th>Scheduled</th>
+                <th>Duration</th>
+                <th>Location</th>
+                <th>Status</th>
+                <th class="text-right">Action</th>
+            </tr></thead>
+            <tbody>
+                {{range .Interviews}}
+                <tr>
+                    <td><p class="font-medium">{{.CandidateName}}</p></td>
+                    <td>{{.RoundName}}</td>
+                    <td>{{.InterviewerName}}</td>
+                    <td class="text-sm">{{.ScheduledAt.Format "Jan 02, 2006 15:04"}}</td>
+                    <td class="text-sm">{{.DurationMinutes}} min</td>
+                    <td class="text-sm">
+                        {{if .Location}}{{.Location}}{{else if .MeetingLink}}<a href="{{.MeetingLink}}" target="_blank" class="text-blue-600 hover:underline">Meeting Link</a>{{else}}—{{end}}
+                    </td>
+                    <td><span class="badge {{if eq .Status "scheduled"}}badge-active{{else if eq .Status "completed"}}badge-completed{{else if eq .Status "cancelled"}}badge-inactive{{else}}badge-draft{{end}}">{{.Status}}</span></td>
+                    <td class="text-right">
+                        {{if eq .Status "scheduled"}}
+                            <a href="/pages/interviews/{{.ID}}/feedback" class="btn btn-sm" style="background: var(--rose-foam); color: white;">Feedback</a>
+                            <form style="display:inline" method="post" action="/pages/interviews/{{.ID}}/status" data-ajax>
+                                <input type="hidden" name="status" value="completed">
+                                <button type="submit" class="btn btn-sm btn-ghost"><i class="fa-solid fa-check"></i></button>
+                            </form>
+                        {{else if eq .Status "completed"}}
+                            <a href="/pages/interviews/{{.ID}}/feedback" class="btn btn-sm btn-ghost">View Feedback</a>
+                        {{end}}
+                        <form data-confirm="Delete this interview?" style="display:inline" method="post" action="/pages/interviews/{{.ID}}/delete" data-ajax>
+                            <button type="submit" class="btn btn-sm btn-ghost text-red-600"><i class="fa-solid fa-trash"></i></button>
+                        </form>
+                    </td>
+                </tr>
+                {{else}}
+                <tr><td colspan="8" class="empty-state"><i class="fa-regular fa-calendar empty-state-icon"></i>No interviews scheduled yet.</td></tr>
+                {{end}}
+            </tbody>
+        </table>
+    </div>
+
+    <dialog id="schedule-interview-dialog" class="dialog" style="max-width: 36rem;">
+        <form class="dialog-body" style="border-radius: 1rem;" method="post" action="/pages/interviews" data-ajax data-close-dialog>
+            <div><h3 class="dialog-title">Schedule Interview</h3></div>
+            <div class="form-group"><label class="form-label">Candidate</label><select name="candidate_id" required class="form-select"><option value="">Select candidate</option>{{range .Candidates}}<option value="{{.ID}}">{{.FullName}} - {{.PostingTitle}}</option>{{end}}</select></div>
+            <div class="form-group"><label class="form-label">Interview Round</label><select name="interview_round_id" required class="form-select"><option value="">Select round</option>{{range .Rounds}}<option value="{{.ID}}">{{.Name}} ({{.RoundType}})</option>{{end}}</select></div>
+            <div class="form-group"><label class="form-label">Interviewer</label><select name="interviewer_id" required class="form-select"><option value="">Select interviewer</option>{{range .Workers}}<option value="{{.UserID}}">{{.Name}} ({{.EmployeeCode}})</option>{{end}}</select></div>
+            <div class="grid grid-cols-2 gap-4">
+                <div class="form-group"><label class="form-label">Date & Time</label><input type="datetime-local" name="scheduled_at" required class="form-input"></div>
+                <div class="form-group"><label class="form-label">Duration (min)</label><input type="number" name="duration_minutes" value="60" class="form-input"></div>
+            </div>
+            <div class="form-group"><label class="form-label">Location / Room</label><input name="location" class="form-input" placeholder="e.g. Conference Room A"></div>
+            <div class="form-group"><label class="form-label">Meeting Link</label><input name="meeting_link" class="form-input" placeholder="https://..."></div>
+            <div class="form-group"><label class="form-label">Notes</label><textarea name="notes" rows="2" class="form-input"></textarea></div>
+            <div class="dialog-footer" style="border-top: 1px solid #f1f5f9; padding-top: 1rem;"><button type="button" onclick="this.closest('dialog').close()" class="btn btn-ghost">Cancel</button><button type="submit" class="btn btn-love">Schedule</button></div>
+        </form>
+    </dialog>
+</div>
+{{end}}

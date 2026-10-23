@@ -1,0 +1,140 @@
+{{define "page-job-posting-candidates"}}
+<div class="space-y-6" id="job-posting-candidates-page">
+    <div class="page-header flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+            <h3 class="page-title">{{.Posting.Title}}</h3>
+            <p class="text-sm text-muted">Candidates who applied for this position</p>
+        </div>
+        <a href="/pages/job-postings" class="btn btn-ghost">
+            <i class="fa-solid fa-arrow-left mr-1"></i> Back to Job Postings
+        </a>
+    </div>
+
+    <div class="card card-padded">
+        <div class="flex flex-wrap gap-4 mb-4">
+            <div><span class="text-sm text-muted">Department:</span><p class="font-medium">{{.Posting.Title}}</p></div>
+            <div><span class="text-sm text-muted">Status:</span><p><span class="badge {{if eq .Posting.Status "published"}}badge-active{{else if eq .Posting.Status "closed"}}badge-inactive{{else}}badge-draft{{end}}">{{.Posting.Status}}</span></p></div>
+            {{if and .Posting.SalaryMin .Posting.SalaryMax}}
+            <div><span class="text-sm text-muted">Salary:</span><p class="font-medium">${{printf "%.0f" (derefFloat .Posting.SalaryMin)}} - ${{printf "%.0f" (derefFloat .Posting.SalaryMax)}}</p></div>
+            {{end}}
+        </div>
+    </div>
+
+    <div class="table-container overflow-x-auto">
+        <table>
+            <thead class="table-head"><tr>
+                <th>Candidate</th>
+                <th>Phone</th>
+                <th>Skills</th>
+                <th>CV</th>
+                <th>Evaluation</th>
+                <th>Status</th>
+                <th>Applied</th>
+                <th class="text-right">Action</th>
+            </tr></thead>
+            <tbody>
+                {{range .Candidates}}
+                <tr>
+                    <td><p class="font-medium">{{.FullName}}</p><p class="text-sm text-muted">{{.Email}}</p></td>
+                    <td class="text-sm">{{if .Phone}}{{.Phone}}{{else}}—{{end}}</td>
+                    <td class="text-sm text-subtle">{{if .Skills}}{{.Skills}}{{else}}—{{end}}</td>
+                    <td><button onclick='downloadCV({{.ID}})' class="hover:underline text-sm" style="color: var(--rose-pine);"><i class="fa-solid fa-download mr-1"></i>Download</button></td>
+                    <td>
+                        {{if .HasEvaluation}}
+                            {{if .EvaluationCompleted}}
+                                <span class="badge badge-success">Evaluated</span>
+                            {{else if .EvaluationPending}}
+                                <span class="badge badge-warning">Pending</span>
+                            {{else}}
+                                <span class="badge badge-info">In Progress</span>
+                            {{end}}
+                        {{else}}
+                            <span class="badge badge-danger">No Evaluation</span>
+                        {{end}}
+                    </td>
+                    <td><span class="badge {{if eq .Status "hired"}}badge-active{{else if eq .Status "new"}}badge-info{{else}}badge-default{{end}}">{{.Status}}</span></td>
+                    <td class="text-sm text-muted">{{.CreatedAt.Format "Jan 02, 2006"}}</td>
+                    <td class="text-right">
+                        {{if and (ne .Status "hired") (ne .Status "rejected")}}
+                            {{if .HasEvaluation}}
+                                {{if .EvaluationCompleted}}
+                                    <button onclick="document.getElementById('hire-candidate-{{.ID}}').showModal()" class="btn btn-sm" style="background: var(--rose-foam); color: white;">Accept</button>
+                                    <dialog id="hire-candidate-{{.ID}}" class="dialog" style="max-width: 28rem;">
+                                        <form class="dialog-body" style="border-radius: 1rem;" method="post" action="/pages/candidates/{{.ID}}/hire" data-ajax data-close-dialog>
+                                            <div><h3 class="dialog-title">Accept {{.FullName}}</h3><p class="mt-1 text-sm text-muted">Creates an active worker account with the position from the job posting.</p></div>
+                                            <div class="form-group"><label class="form-label">Interview rating (1–5)</label><input type="number" name="rating" min="1" max="5" step="0.1" required class="form-input" placeholder="3.0"></div>
+                                            <div class="form-group"><label class="form-label">Temporary password</label><input type="password" name="temporary_password" minlength="8" required class="form-input" autocomplete="new-password"><p class="text-xs text-muted mt-1">Give this to the new worker securely.</p></div>
+                                            <div class="form-group"><label class="form-label">Assessment notes</label><textarea name="notes" rows="3" class="form-input" placeholder="Optional hiring notes"></textarea></div>
+                                            <div class="dialog-footer" style="border-top: 1px solid #f1f5f9; padding-top: 1rem;"><button type="button" onclick="this.closest('dialog').close()" class="btn btn-ghost">Cancel</button><button type="submit" class="btn btn-love">Accept worker</button></div>
+                                        </form>
+                                    </dialog>
+                                {{else}}
+                                    <span class="text-sm text-muted">Evaluation in progress</span>
+                                {{end}}
+                            {{else}}
+                                <button onclick="document.getElementById('eval-candidate-{{.ID}}').showModal()" class="btn btn-sm btn-iris">Assign Evaluation</button>
+                                <dialog id="eval-candidate-{{.ID}}" class="dialog" style="max-width: 28rem;">
+                                    <form class="dialog-body" style="border-radius: 1rem;" method="post" action="/pages/candidates/{{.ID}}/assign-eval" data-ajax data-close-dialog>
+                                        <div><h3 class="dialog-title">Assign Evaluation for {{.FullName}}</h3><p class="mt-1 text-sm text-muted">Assign an evaluator to assess this candidate before hiring.</p></div>
+                                        <div class="form-group">
+                                            <label class="form-label-sm">Evaluation Period</label>
+                                            <select name="evaluation_period_id" required class="form-select form-input-lg">
+                                                <option value="">Select a period</option>
+                                                {{range $.Periods}}<option value="{{.ID}}">#{{.ID}} · {{.Name}}</option>{{end}}
+                                            </select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label-sm">Evaluation Template</label>
+                                            <select name="evaluation_template_id" required class="form-select form-input-lg">
+                                                <option value="">Select a template</option>
+                                                {{range $.Templates}}<option value="{{.ID}}">#{{.ID}} · {{.Name}}</option>{{end}}
+                                            </select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label-sm">Evaluator</label>
+                                            <select name="evaluator_id" required class="form-select form-input-lg">
+                                                <option value="">Select a worker</option>
+                                                {{range $.Workers}}<option value="{{.UserID}}">{{.Name}} · {{.EmployeeCode}}</option>{{end}}
+                                            </select>
+                                        </div>
+                                        <div class="form-group">
+                                            <label class="form-label-sm">Due Date</label>
+                                            <input type="date" name="due_date" class="form-input form-input-lg">
+                                        </div>
+                                        <div class="dialog-footer" style="border-top: 1px solid #f1f5f9; padding-top: 1rem;"><button type="button" onclick="this.closest('dialog').close()" class="btn btn-ghost">Cancel</button><button type="submit" class="btn btn-love">Assign Evaluator</button></div>
+                                    </form>
+                                </dialog>
+                            {{end}}
+                        {{else}}
+                        <span class="text-sm font-medium" style="color: var(--rose-foam);">Accepted</span>
+                        {{end}}
+                    </td>
+                </tr>
+                {{else}}
+                <tr><td colspan="8" class="empty-state"><i class="fa-regular fa-file-lines empty-state-icon"></i>No candidates have applied for this position yet.</td></tr>
+                {{end}}
+            </tbody>
+        </table>
+    </div>
+</div>
+<script>
+function downloadCV(id) {
+    var token = typeof getAuthToken === 'function' ? getAuthToken() : sessionStorage.getItem('token');
+    fetch('/api/candidates/' + id + '/cv', {
+        headers: { 'Authorization': 'Bearer ' + token }
+    }).then(function(res) {
+        if (!res.ok) throw new Error('Download failed');
+        return res.blob();
+    }).then(function(blob) {
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a');
+        a.href = url;
+        a.download = '';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(url);
+    });
+}
+</script>
+{{end}}

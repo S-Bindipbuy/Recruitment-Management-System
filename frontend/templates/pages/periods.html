@@ -1,0 +1,130 @@
+{{define "page-periods"}}
+<div class="space-y-6" id="periods-page">
+    <div class="page-header">
+        <div class="page-header-left">
+            <h3 class="page-title">Evaluation Periods</h3>
+            <p class="page-subtitle">Manage evaluation time periods</p>
+        </div>
+        <div class="page-actions">
+            <button onclick="document.getElementById('new-period-dialog').showModal()" class="btn btn-primary"><i class="fa-solid fa-plus text-xs"></i> New Period</button>
+        </div>
+    </div>
+
+    <div class="table-container">
+        <table>
+            <thead class="table-head">
+                <tr>
+                    <th>Name</th>
+                    <th>Description</th>
+                    <th>Start Date</th>
+                    <th>End Date</th>
+                    <th>Status</th>
+                    <th style="width: 120px;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{if .Periods}}
+                {{range .Periods}}
+                <tr>
+                    <td class="table-cell-bold">{{.Name}}</td>
+                    <td class="table-cell-muted">{{.Description}}</td>
+                    <td>{{.StartDate}}</td>
+                    <td>{{.EndDate}}</td>
+                    <td><span class="badge {{if eq .Status "active"}}badge-active{{else}}badge-inactive{{end}}">{{.Status}}</span></td>
+                    <td>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <a href="/pages/periods/{{.ID}}/history" class="btn btn-ghost" title="What happened in this period" style="padding: 0.375rem 0.625rem; font-size: 0.875rem;"><i class="fa-solid fa-clock-rotate-left"></i></a>
+                            <button data-id="{{.ID}}" data-name="{{.Name}}" data-description="{{.Description}}" data-start-date="{{.StartDate}}" data-end-date="{{.EndDate}}" data-status="{{.Status}}" onclick="openEditPeriod(this)" class="btn btn-ghost" style="padding: 0.375rem 0.625rem; font-size: 0.875rem;"><i class="fa-solid fa-pen"></i></button>
+                            <button onclick="deletePeriod({{.ID}})" class="btn btn-ghost" style="padding: 0.375rem 0.625rem; font-size: 0.875rem; color: #e06c75;"><i class="fa-solid fa-trash"></i></button>
+                        </div>
+                    </td>
+                </tr>
+                {{end}}
+                {{else}}
+                <tr><td colspan="6" class="text-center text-muted" style="padding: 2rem;">No periods defined. <a href="/pages/cycle" style="color: var(--rose-pine); font-weight: 600;">Start an evaluation cycle</a> to create the first one.</td></tr>
+                {{end}}
+            </tbody>
+        </table>
+    </div>
+
+    <dialog id="new-period-dialog" class="dialog">
+        <form class="dialog-body" method="post" action="/pages/periods" data-ajax data-close-dialog>
+            <h3 class="dialog-title">New Evaluation Period</h3>
+            <div class="form-group">
+                <label class="form-label-sm">Name</label>
+                <input type="text" name="name" required class="form-input form-input-lg">
+            </div>
+            <div class="form-group">
+                <label class="form-label-sm">Description</label>
+                <textarea name="description" class="form-textarea"></textarea>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div class="form-group">
+                    <label class="form-label-sm">Start Date</label>
+                    <input type="date" name="start_date" required class="form-input form-input-lg">
+                </div>
+                <div class="form-group">
+                    <label class="form-label-sm">End Date</label>
+                    <input type="date" name="end_date" required class="form-input form-input-lg">
+                </div>
+            </div>
+            <div class="dialog-footer">
+                <button type="button" onclick="this.closest('dialog').close()" class="btn btn-ghost">Cancel</button>
+                <button type="submit" class="btn btn-love">Create Period</button>
+            </div>
+        </form>
+    </dialog>
+
+    <dialog id="edit-period-dialog" class="dialog">
+        <form id="edit-period-form" class="dialog-body" method="post" data-ajax data-method="PUT" data-close-dialog>
+            <h3 class="dialog-title">Edit Period</h3>
+            <div class="form-group">
+                <label class="form-label-sm">Name</label>
+                <input type="text" name="name" id="edit-period-name" required class="form-input form-input-lg">
+            </div>
+            <div class="form-group">
+                <label class="form-label-sm">Description</label>
+                <textarea name="description" id="edit-period-description" class="form-textarea"></textarea>
+            </div>
+            <div class="grid grid-cols-2 gap-3">
+                <div class="form-group">
+                    <label class="form-label-sm">Start Date</label>
+                    <input type="date" name="start_date" id="edit-period-start" required class="form-input form-input-lg">
+                </div>
+                <div class="form-group">
+                    <label class="form-label-sm">End Date</label>
+                    <input type="date" name="end_date" id="edit-period-end" required class="form-input form-input-lg">
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label-sm">Status</label>
+                <select name="status" id="edit-period-status" class="form-select form-input-lg">
+                    <option value="active">Active</option>
+                    <option value="inactive">Inactive</option>
+                </select>
+            </div>
+            <div class="dialog-footer">
+                <button type="button" onclick="this.closest('dialog').close()" class="btn btn-ghost">Cancel</button>
+                <button type="submit" class="btn btn-love">Save Changes</button>
+            </div>
+        </form>
+    </dialog>
+</div>
+
+<script>
+function openEditPeriod(el) {
+    var ds = el.dataset;
+    document.getElementById('edit-period-name').value = ds.name || '';
+    document.getElementById('edit-period-description').value = ds.description || '';
+    document.getElementById('edit-period-start').value = ds.startDate || '';
+    document.getElementById('edit-period-end').value = ds.endDate || '';
+    document.getElementById('edit-period-status').value = ds.status || 'active';
+    document.getElementById('edit-period-form').dataset.url = '/pages/periods/' + ds.id;
+    document.getElementById('edit-period-dialog').showModal();
+}
+function deletePeriod(id) {
+    if (!confirm('Are you sure you want to delete this period?')) return;
+    emsRequest('DELETE', '/pages/periods/' + id, '#page');
+}
+</script>
+{{end}}

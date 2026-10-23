@@ -1,0 +1,88 @@
+{{define "page-job-postings"}}
+<div class="space-y-6" id="job-postings-page">
+    <div class="page-header flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div>
+            <h3 class="page-title">Job Postings</h3>
+            <p class="page-subtitle">Manage open positions and track applications.</p>
+        </div>
+        <div class="page-actions flex items-center gap-2">
+            <button onclick="document.getElementById('create-job-dialog').showModal()" class="btn btn-ghost">
+                Single form
+            </button>
+            <a href="/pages/job-wizard" class="btn btn-primary">
+                <i class="fa-solid fa-plus text-xs"></i> New Job Posting
+            </a>
+        </div>
+    </div>
+
+    <div class="table-container overflow-x-auto">
+        <table>
+            <thead class="table-head"><tr>
+                <th>Title</th>
+                <th>Department</th>
+                <th>Position</th>
+                <th>Type</th>
+                <th>Salary Range</th>
+                <th>Status</th>
+                <th class="text-right">Action</th>
+            </tr></thead>
+            <tbody>
+                {{range .Postings}}
+                <tr>
+                    <td><p class="font-medium">{{.Title}}</p></td>
+                    <td>{{.DepartmentName}}</td>
+                    <td>{{.PositionName}}</td>
+                    <td class="text-sm">{{.EmploymentType}}</td>
+                    <td class="text-sm">
+                        {{if and .SalaryMin .SalaryMax}}
+                            ${{printf "%.0f" (derefFloat .SalaryMin)}} - ${{printf "%.0f" (derefFloat .SalaryMax)}}
+                        {{else}}—{{end}}
+                    </td>
+                    <td><span class="badge {{if eq .Status "published"}}badge-active{{else if eq .Status "closed"}}badge-inactive{{else}}badge-draft{{end}}">{{.Status}}</span></td>
+                    <td class="text-right">
+                        <a href="/pages/job-postings/{{.ID}}/candidates" class="btn btn-sm btn-ghost" style="color: var(--rose-pine);">
+                            <i class="fa-solid fa-users mr-1"></i>Candidates
+                        </a>
+                        {{if eq .Status "draft"}}
+                            <form style="display:inline" method="post" action="/pages/job-postings/{{.ID}}/publish" data-ajax>
+                                <button type="submit" class="btn btn-sm" style="background: var(--rose-foam); color: white;">Publish</button>
+                            </form>
+                        {{else if eq .Status "published"}}
+                            <form style="display:inline" method="post" action="/pages/job-postings/{{.ID}}/close" data-ajax>
+                                <button type="submit" class="btn btn-sm" style="background: #f59e0b; color: white;">Close</button>
+                            </form>
+                        {{else if eq .Status "closed"}}
+                            <form style="display:inline" method="post" action="/pages/job-postings/{{.ID}}/reopen" data-ajax>
+                                <button type="submit" class="btn btn-sm" style="background: #22c55e; color: white;"><i class="fa-solid fa-rotate-left mr-1"></i>Reopen</button>
+                            </form>
+                        {{end}}
+                        <form data-confirm="Delete this job posting?" style="display:inline" method="post" action="/pages/job-postings/{{.ID}}/delete" data-ajax>
+                            <button type="submit" class="btn btn-sm btn-ghost text-red-600"><i class="fa-solid fa-trash"></i></button>
+                        </form>
+                    </td>
+                </tr>
+                {{else}}
+                <tr><td colspan="7" class="empty-state"><i class="fa-regular fa-file-lines empty-state-icon"></i>No job postings yet.</td></tr>
+                {{end}}
+            </tbody>
+        </table>
+    </div>
+
+    <dialog id="create-job-dialog" class="dialog" style="max-width: 36rem;">
+        <form class="dialog-body" style="border-radius: 1rem;" method="post" action="/pages/job-postings" data-ajax data-close-dialog>
+            <div><h3 class="dialog-title">Create Job Posting</h3></div>
+            <div class="form-group"><label class="form-label">Title</label><input name="title" required class="form-input" placeholder="e.g. Senior Software Engineer"></div>
+            <div class="form-group"><label class="form-label">Position</label><select name="position_id" required class="form-select"><option value="">Select position</option>{{range .Positions}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select></div>
+            <div class="form-group"><label class="form-label">Employment Type</label><select name="employment_type" class="form-select"><option value="full-time">Full-time</option><option value="part-time">Part-time</option><option value="contract">Contract</option><option value="internship">Internship</option></select></div>
+            <div class="grid grid-cols-2 gap-4">
+                <div class="form-group"><label class="form-label">Min Salary</label><input type="number" name="salary_min" class="form-input" placeholder="Optional"></div>
+                <div class="form-group"><label class="form-label">Max Salary</label><input type="number" name="salary_max" class="form-input" placeholder="Optional"></div>
+            </div>
+            <div class="form-group"><label class="form-label">Required Skills</label><input name="skills_required" class="form-input" placeholder="e.g. Go, JavaScript, Python"></div>
+            <div class="form-group"><label class="form-label">Description</label><textarea name="description" rows="3" class="form-input"></textarea></div>
+            <div class="form-group"><label class="form-label">Requirements</label><textarea name="requirements" rows="3" class="form-input"></textarea></div>
+            <div class="dialog-footer" style="border-top: 1px solid #f1f5f9; padding-top: 1rem;"><button type="button" onclick="this.closest('dialog').close()" class="btn btn-ghost">Cancel</button><button type="submit" class="btn btn-love">Create</button></div>
+        </form>
+    </dialog>
+</div>
+{{end}}

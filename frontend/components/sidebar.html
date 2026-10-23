@@ -1,0 +1,143 @@
+<aside class="sidebar-nav-container select-none">
+    <div class="sidebar-header">
+        <div class="sidebar-logo">
+            <i class="fa-solid fa-seedling text-xs"></i>
+        </div>
+        <div class="sidebar-title-group">
+            <h1>EMS System</h1>
+            <p>Rosé Pine Dawn</p>
+        </div>
+    </div>
+
+    <div class="sidebar-scroll-line" id="scrollIndicator">
+        <div class="sidebar-scroll-progress"></div>
+    </div>
+
+    <div class="sidebar-nav-content">
+        <div class="sidebar-nav-section">
+            <p class="sidebar-menu-title">Overview</p>
+            <nav class="sidebar-nav">
+                <a href="/pages/dashboard" class="nav-link sidebar-nav-link" data-page="dashboard" data-permission="dashboard.view">
+                    <i class="fa-solid fa-chart-line"></i>
+                    <span>Dashboard</span>
+                </a>
+            </nav>
+        </div>
+
+        <div class="sidebar-nav-section">
+            <p class="sidebar-menu-title">Organization</p>
+            <nav class="sidebar-nav">
+                <a href="/pages/organizations" class="nav-link sidebar-nav-link" data-page="organizations" data-permission="organization.manage">
+                    <i class="fa-solid fa-sitemap"></i>
+                    <span>Organizations</span>
+                </a>
+                <a href="/pages/departments" class="nav-link sidebar-nav-link" data-page="departments" data-permission="organization.manage">
+                    <i class="fa-solid fa-building"></i>
+                    <span>Departments</span>
+                </a>
+                <a href="/pages/positions" class="nav-link sidebar-nav-link" data-page="positions" data-permission="organization.manage">
+                    <i class="fa-solid fa-briefcase"></i>
+                    <span>Positions</span>
+                </a>
+                <a href="/pages/employees" class="nav-link sidebar-nav-link" data-page="employees" data-permission="employee.manage">
+                    <i class="fa-solid fa-users"></i>
+                    <span>Employees</span>
+                </a>
+            </nav>
+        </div>
+
+        <div class="sidebar-nav-section">
+            <p class="sidebar-menu-title">Recruitment</p>
+            <nav class="sidebar-nav">
+                <a href="/pages/candidates" class="nav-link sidebar-nav-link" data-page="candidates" data-permission="recruitment.manage">
+                    <i class="fa-solid fa-file-arrow-up"></i>
+                    <span>Candidates</span>
+                </a>
+                <a href="/pages/job-postings" class="nav-link sidebar-nav-link" data-page="job-postings" data-permission="recruitment.manage">
+                    <i class="fa-solid fa-newspaper"></i>
+                    <span>Job Postings</span>
+                </a>
+                <a href="/pages/interviews" class="nav-link sidebar-nav-link" data-page="interviews" data-permission="recruitment.manage">
+                    <i class="fa-solid fa-calendar-check"></i>
+                    <span>Interviews</span>
+                </a>
+            </nav>
+        </div>
+
+        <div class="sidebar-nav-section">
+            <p class="sidebar-menu-title">Evaluation</p>
+            <nav class="sidebar-nav">
+                <a href="/pages/cycle" class="nav-link sidebar-nav-link" data-page="cycle" data-permission="evaluation.assign,evaluation.manage">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                    <span>Run a Cycle</span>
+                </a>
+                <a href="/pages/evaluations" class="nav-link sidebar-nav-link" data-page="evaluations" data-permission="evaluation.evaluate">
+                    <i class="fa-solid fa-clipboard-check"></i>
+                    <span>Evaluations</span>
+                </a>
+                <a href="/pages/periods" class="nav-link sidebar-nav-link" data-page="periods" data-permission="evaluation.manage">
+                    <i class="fa-solid fa-calendar"></i>
+                    <span>Periods</span>
+                </a>
+                <a href="/pages/templates-eval" class="nav-link sidebar-nav-link" data-page="templates-eval" data-permission="evaluation.manage">
+                    <i class="fa-solid fa-file-lines"></i>
+                    <span>Templates</span>
+                </a>
+
+                <a href="/pages/approvals" class="nav-link sidebar-nav-link" data-page="approvals" data-permission="evaluation.approve">
+                    <i class="fa-solid fa-check-double"></i>
+                    <span>Approvals</span>
+                </a>
+            </nav>
+        </div>
+
+        <div class="sidebar-nav-section">
+            <p class="sidebar-menu-title">Analytics</p>
+            <nav class="sidebar-nav">
+                <a href="/pages/reports" class="nav-link sidebar-nav-link" data-page="reports" data-permission="report.view">
+                    <i class="fa-solid fa-chart-column"></i>
+                    <span>Reports</span>
+                </a>
+                <a href="/pages/recruitment-reports" class="nav-link sidebar-nav-link" data-page="recruitment-reports" data-permission="report.view">
+                    <i class="fa-solid fa-chart-pie"></i>
+                    <span>Recruitment Reports</span>
+                </a>
+            </nav>
+        </div>
+
+        <div class="sidebar-nav-section">
+            <p class="sidebar-menu-title">Administration</p>
+            <nav class="sidebar-nav">
+                <a href="/pages/users" class="nav-link sidebar-nav-link" data-page="users" data-permission="user.manage" data-admin="true">
+                    <i class="fa-solid fa-user-gear"></i>
+                    <span>Users</span>
+                </a>
+                <a href="/pages/roles" class="nav-link sidebar-nav-link" data-page="roles" data-permission="role.manage" data-admin="true">
+                    <i class="fa-solid fa-shield-halved"></i>
+                    <span>Roles</span>
+                </a>
+                <a href="/pages/permissions" class="nav-link sidebar-nav-link" data-page="permissions" data-permission="role.manage" data-admin="true">
+                    <i class="fa-solid fa-key"></i>
+                    <span>Permissions</span>
+                </a>
+            </nav>
+        </div>
+    </div>
+
+    <div class="sidebar-footer">
+        <div class="user-profile">
+            <div class="user-profile-left">
+                <div class="user-avatar">
+                    <i class="fa-solid fa-user"></i>
+                </div>
+                <div class="min-w-0">
+                    <p class="user-name truncate">User Account</p>
+                    <p class="user-status truncate">Active Session</p>
+        </div>
+    </div>
+            <button onclick="logout()" title="Logout" class="logout-btn">
+                <i class="fa-solid fa-right-from-bracket text-sm"></i>
+            </button>
+        </div>
+    </div>
+</aside>

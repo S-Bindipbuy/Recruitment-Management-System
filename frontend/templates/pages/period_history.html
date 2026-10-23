@@ -1,0 +1,107 @@
+{{define "page-period-history"}}
+<div class="space-y-6 animate-fade-in" id="period-history-page">
+    <div class="page-header">
+        <div class="page-header-left">
+            <h3 class="page-title">{{.Period.Name}}</h3>
+            <p class="page-subtitle">Everything that happened during this period</p>
+        </div>
+        <div class="page-actions">
+            <a href="/pages/periods" class="btn btn-ghost"><i class="fa-solid fa-arrow-left text-xs"></i> All periods</a>
+        </div>
+    </div>
+
+    <div class="card card-padded">
+        <div class="history-meta">
+            <div><span class="history-meta-label">Dates</span><span class="history-meta-value">{{.Period.StartDate}} → {{.Period.EndDate}}</span></div>
+            <div><span class="history-meta-label">Status</span><span class="badge {{if eq .Period.Status "active"}}badge-active{{else if eq .Period.Status "closed"}}badge-neutral{{else}}badge-inactive{{end}}">{{.Period.Status}}</span></div>
+            <div><span class="history-meta-label">Created</span><span class="history-meta-value">{{.Period.CreatedAt.Format "2006-01-02"}}</span></div>
+            {{if .Period.Description}}<div><span class="history-meta-label">Description</span><span class="history-meta-value">{{.Period.Description}}</span></div>{{end}}
+        </div>
+    </div>
+
+    {{if .Total}}
+    <!-- Progress -->
+    <div class="card card-padded">
+        <div class="history-progress-head">
+            <h4 class="wizard-card-title">Where the cycle got to</h4>
+            <div class="history-scores">
+                <span class="badge badge-completed">{{.Completed}} completed</span>
+                <span class="badge badge-warning">{{.InProgress}} in progress</span>
+                <span class="badge badge-inactive">{{.Pending}} not started</span>
+                {{if .HasScore}}<span class="badge badge-active">Average {{printf "%.1f" .AvgScore}}%</span>{{end}}
+            </div>
+        </div>
+        <div class="history-bar">
+            <div class="history-bar-done" style="width: {{.PctCompleted}}%"></div>
+            <div class="history-bar-wip" style="width: {{.PctInProg}}%"></div>
+            <div class="history-bar-pending" style="width: {{.PctPending}}%"></div>
+        </div>
+    </div>
+
+    <!-- Who was evaluated -->
+    <div class="table-container">
+        <table>
+            <thead class="table-head">
+                <tr>
+                    <th>Evaluatee</th>
+                    <th>Evaluator</th>
+                    <th>Status</th>
+                    <th>Approval</th>
+                    <th>Score</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{range .Rows}}
+                <tr>
+                    <td class="table-cell-bold">{{.EvaluateeName}}</td>
+                    <td class="table-cell-muted">{{.EvaluatorName}}</td>
+                    <td>
+                        <span class="badge {{if eq .Status "completed"}}badge-completed{{else if eq .Status "started"}}badge-warning{{else if eq .Status "submitted"}}badge-info{{else}}badge-inactive{{end}}">{{.Status}}</span>
+                        {{if .Overdue}}<span class="badge badge-danger">overdue</span>{{end}}
+                    </td>
+                    <td class="text-sm text-muted">
+                        {{if .ApprovalStatus}}<span class="badge {{if eq .ApprovalStatus "approved"}}badge-active{{else if eq .ApprovalStatus "rejected"}}badge-danger{{else}}badge-inactive{{end}}">{{.ApprovalStatus}}</span>{{else}}-{{end}}
+                    </td>
+                    <td>
+                        {{if .HasResult}}
+                        <a href="/pages/evaluation-fill/{{.AssignmentID}}" class="history-score-link">{{printf "%.1f" .Percentage}}% · {{.Grade}}</a>
+                        {{else}}<span class="text-sm text-muted">-</span>{{end}}
+                    </td>
+                </tr>
+                {{end}}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Activity timeline -->
+    <div class="card card-padded">
+        <div class="history-progress-head">
+            <h4 class="wizard-card-title">Activity</h4>
+            <span class="text-sm text-muted">{{len .Events}} events, newest first</span>
+        </div>
+        <div class="timeline">
+            {{range .Events}}
+            <div class="timeline-item">
+                <div class="timeline-marker {{.Badge}}"><i class="fa-solid fa-circle"></i></div>
+                <div class="timeline-body">
+                    <p class="timeline-summary">{{.Summary}}</p>
+                    <p class="timeline-meta">
+                        <span>{{.At.Format "2006-01-02 15:04"}}</span>
+                        {{if .Detail}}<span class="timeline-detail">{{.Detail}}</span>{{end}}
+                    </p>
+                </div>
+            </div>
+            {{end}}
+        </div>
+    </div>
+    {{else}}
+    <div class="card card-padded">
+        <div class="empty-state">
+            <i class="fa-solid fa-clipboard-list empty-state-icon"></i>
+            <p class="text-muted">Nothing was assigned in this period.</p>
+            <a href="/pages/cycle" class="btn btn-primary">Start an evaluation cycle</a>
+        </div>
+    </div>
+    {{end}}
+</div>
+{{end}}

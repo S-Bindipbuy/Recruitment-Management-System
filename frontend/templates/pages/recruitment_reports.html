@@ -1,0 +1,182 @@
+{{define "page-recruitment-reports"}}
+<div class="space-y-6" id="recruitment-reports-page">
+    <div class="page-header">
+        <div>
+            <h3 class="page-title">Recruitment Reports</h3>
+            <p class="text-sm text-muted">Analytics for candidate evaluations, interviewer activity, and hiring decisions.</p>
+        </div>
+        <a href="/pages/recruitment-reports" class="report-refresh">Refresh</a>
+    </div>
+
+    <!-- Summary Stats -->
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div class="report-summary-card report-summary-blue">
+            <p>{{len .Summaries}}</p>
+            <p>Total Candidates</p>
+        </div>
+        <div class="report-summary-card report-summary-green">
+            <p>{{len .Activities}}</p>
+            <p>Active Interviewers</p>
+        </div>
+        <div class="report-summary-card report-summary-yellow">
+            <p>{{len .Decisions}}</p>
+            <p>Hiring Decisions</p>
+        </div>
+        <div class="report-summary-card report-summary-purple">
+            <p>{{if .Summaries}}{{printf "%.1f" (index .Summaries 0).AverageScore}}{{else}}0.0{{end}}</p>
+            <p>Top Score</p>
+        </div>
+    </div>
+
+    <!-- Candidate Evaluation Summary -->
+    <div class="card card-padded">
+        <div class="flex items-center justify-between mb-4">
+            <h4 class="font-semibold"><i class="fa-solid fa-chart-bar mr-2" style="color: var(--rose-pine);"></i>Candidate Evaluation Summary</h4>
+            <span class="text-sm text-muted">{{len .Summaries}} candidate{{if ne (len .Summaries) 1}}s{{end}}</span>
+        </div>
+        {{if .Summaries}}
+        <div class="overflow-x-auto">
+            <table>
+                <thead class="table-head">
+                    <tr>
+                        <th>Candidate</th>
+                        <th>Position</th>
+                        <th>Interviews</th>
+                        <th>Completed</th>
+                        <th>Avg Score</th>
+                        <th>High</th>
+                        <th>Low</th>
+                        <th>Decision</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{range .Summaries}}
+                    <tr>
+                        <td class="font-medium">{{.CandidateName}}</td>
+                        <td class="text-sm text-subtle">{{.PositionName}}</td>
+                        <td class="text-sm text-center">{{.TotalInterviews}}</td>
+                        <td class="text-sm text-center">{{.CompletedReviews}}</td>
+                        <td class="text-sm font-semibold" style="color: var(--rose-pine);">{{printf "%.1f" .AverageScore}}</td>
+                        <td class="text-sm">{{printf "%.1f" .HighestScore}}</td>
+                        <td class="text-sm">{{printf "%.1f" .LowestScore}}</td>
+                        <td>
+                            {{if eq .FinalDecision "hire"}}
+                                <span class="badge badge-active">Hire</span>
+                            {{else if eq .FinalDecision "maybe"}}
+                                <span class="badge badge-warning">Maybe</span>
+                            {{else}}
+                                <span class="badge badge-inactive">Reject</span>
+                            {{end}}
+                        </td>
+                    </tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
+        {{else}}
+        <div class="empty-state">
+            <i class="fa-regular fa-chart-bar empty-state-icon"></i>
+            No evaluation data yet.
+        </div>
+        {{end}}
+    </div>
+
+    <!-- Interviewer Activity -->
+    <div class="card card-padded">
+        <div class="flex items-center justify-between mb-4">
+            <h4 class="font-semibold"><i class="fa-solid fa-users mr-2" style="color: var(--rose-foam);"></i>Interviewer Activity</h4>
+            <span class="text-sm text-muted">{{len .Activities}} interviewer{{if ne (len .Activities) 1}}s{{end}}</span>
+        </div>
+        {{if .Activities}}
+        <div class="overflow-x-auto">
+            <table>
+                <thead class="table-head">
+                    <tr>
+                        <th>Interviewer</th>
+                        <th>Total Interviews</th>
+                        <th>Completed</th>
+                        <th>Pending</th>
+                        <th>Avg Score Given</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{range .Activities}}
+                    <tr>
+                        <td class="font-medium">{{.InterviewerName}}</td>
+                        <td class="text-sm text-center">{{.TotalInterviews}}</td>
+                        <td class="text-sm text-center">
+                            <span class="badge badge-active">{{.CompletedReviews}}</span>
+                        </td>
+                        <td class="text-sm text-center">
+                            {{if gt .PendingReviews 0}}
+                                <span class="badge badge-warning">{{.PendingReviews}}</span>
+                            {{else}}
+                                <span class="badge badge-default">0</span>
+                            {{end}}
+                        </td>
+                        <td class="text-sm font-semibold" style="color: var(--rose-foam);">{{printf "%.1f" .AverageScore}}</td>
+                    </tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
+        {{else}}
+        <div class="empty-state">
+            <i class="fa-regular fa-users empty-state-icon"></i>
+            No interviewer activity yet.
+        </div>
+        {{end}}
+    </div>
+
+    <!-- Hiring Decision Report -->
+    <div class="card card-padded">
+        <div class="flex items-center justify-between mb-4">
+            <h4 class="font-semibold"><i class="fa-solid fa-handshake mr-2" style="color: var(--rose-gold);"></i>Hiring Decisions</h4>
+            <span class="text-sm text-muted">{{len .Decisions}} decision{{if ne (len .Decisions) 1}}s{{end}}</span>
+        </div>
+        {{if .Decisions}}
+        <div class="overflow-x-auto">
+            <table>
+                <thead class="table-head">
+                    <tr>
+                        <th>Candidate</th>
+                        <th>Position</th>
+                        <th>Department</th>
+                        <th>Avg Score</th>
+                        <th>Interviews</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{range .Decisions}}
+                    <tr>
+                        <td class="font-medium">{{.CandidateName}}</td>
+                        <td class="text-sm text-subtle">{{.PositionName}}</td>
+                        <td class="text-sm text-subtle">{{.DepartmentName}}</td>
+                        <td class="text-sm font-semibold" style="color: var(--rose-gold);">{{printf "%.1f" .AverageScore}}</td>
+                        <td class="text-sm text-center">{{.InterviewCount}}</td>
+                        <td>
+                            {{if eq .Decision "hired"}}
+                                <span class="badge badge-active">Hired</span>
+                            {{else if eq .Decision "new"}}
+                                <span class="badge badge-info">New</span>
+                            {{else if eq .Decision "reviewed"}}
+                                <span class="badge badge-warning">Reviewed</span>
+                            {{else}}
+                                <span class="badge badge-default">{{.Decision}}</span>
+                            {{end}}
+                        </td>
+                    </tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
+        {{else}}
+        <div class="empty-state">
+            <i class="fa-regular fa-handshake empty-state-icon"></i>
+            No hiring decisions yet.
+        </div>
+        {{end}}
+    </div>
+</div>
+{{end}}

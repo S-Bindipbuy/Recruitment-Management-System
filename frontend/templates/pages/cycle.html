@@ -1,0 +1,371 @@
+{{define "page-cycle"}}
+<div class="space-y-6 animate-fade-in" id="cycle-page">
+    <div class="page-header">
+        <div class="page-header-left">
+            <h3 class="page-title">Start an Evaluation Cycle</h3>
+            <p class="page-subtitle">Four short steps. Nothing to memorise - the next step only asks for what is still missing.</p>
+        </div>
+    </div>
+
+    <!-- Step indicator -->
+    <div class="wizard-steps">
+        <div class="wizard-step {{if ge .Step 1}}wizard-step-done{{end}} {{if eq .Step 1}}wizard-step-current{{end}}">
+            <span class="wizard-step-dot">{{if ge .Step 2}}<i class="fa-solid fa-check"></i>{{else}}1{{end}}</span>
+            <span class="wizard-step-label">Period</span>
+        </div>
+        <div class="wizard-step-line {{if ge .Step 2}}wizard-step-line-done{{end}}"></div>
+        <div class="wizard-step {{if ge .Step 2}}wizard-step-done{{end}} {{if eq .Step 2}}wizard-step-current{{end}}">
+            <span class="wizard-step-dot">{{if ge .Step 3}}<i class="fa-solid fa-check"></i>{{else}}2{{end}}</span>
+            <span class="wizard-step-label">Template</span>
+        </div>
+        <div class="wizard-step-line {{if ge .Step 3}}wizard-step-line-done{{end}}"></div>
+        <div class="wizard-step {{if ge .Step 3}}wizard-step-done{{end}} {{if eq .Step 3}}wizard-step-current{{end}}">
+            <span class="wizard-step-dot">{{if ge .Step 4}}<i class="fa-solid fa-check"></i>{{else}}3{{end}}</span>
+            <span class="wizard-step-label">Who gets evaluated</span>
+        </div>
+        <div class="wizard-step-line {{if ge .Step 4}}wizard-step-line-done{{end}}"></div>
+        <div class="wizard-step {{if eq .Step 4}}wizard-step-current{{end}}">
+            <span class="wizard-step-dot">4</span>
+            <span class="wizard-step-label">Review &amp; launch</span>
+        </div>
+    </div>
+
+    {{if .ErrMessage}}
+    <div class="wizard-alert">
+        <i class="fa-solid fa-circle-exclamation"></i>
+        <span>{{.ErrMessage}}</span>
+    </div>
+    {{end}}
+
+    {{if .Launched}}
+    <!-- ── Done ── -->
+    <div class="card card-padded">
+        <div class="wizard-done">
+            <div class="wizard-done-icon"><i class="fa-solid fa-check"></i></div>
+            <h4 class="wizard-done-title">{{.Created}} evaluations were created</h4>
+            <p class="wizard-done-text">
+                They are now sitting in the Evaluations page, waiting for the evaluators to start.
+                {{if gt .Skipped 0}}{{.Skipped}} were skipped because they were already assigned or could not be paired.{{end}}
+            </p>
+            <div class="wizard-summary">
+                <div class="wizard-summary-row"><span>Period</span><strong>{{.PeriodName}}</strong></div>
+                <div class="wizard-summary-row"><span>Template</span><strong>{{.TemplateName}}</strong></div>
+                <div class="wizard-summary-row"><span>Scope</span><strong>{{len .SelectedCandidateIDs}} candidate{{if ne (len .SelectedCandidateIDs) 1}}s{{end}}</strong></div>
+            </div>
+            <div class="wizard-actions">
+                <a href="/pages/evaluations" class="btn btn-primary">Go to evaluations</a>
+                <a href="/pages/periods/{{.PeriodID}}/history" class="btn btn-ghost">Track this period</a>
+                <a href="/pages/cycle" class="btn btn-ghost">Start another</a>
+            </div>
+        </div>
+    </div>
+
+    {{else if eq .Step 1}}
+    <!-- ── Step 1: period ── -->
+    <div class="card card-padded">
+        <h4 class="wizard-card-title">Which period is this cycle for?</h4>
+        <p class="wizard-card-hint">Pick one you already have, or create it now without leaving this page.</p>
+
+        <form class="space-y-4" method="post" action="/pages/cycle/period" data-ajax>
+            <div class="wizard-choice">
+                <label class="wizard-choice-label">
+                    <input type="radio" name="period_mode" value="existing" checked onchange="toggleCyclePeriodMode()">
+                    Use an existing period
+                </label>
+                {{if .Periods}}
+                <select name="existing_period_id" id="cycle-existing-period" class="form-select form-input-lg">
+                    {{range .Periods}}<option value="{{.ID}}">#{{.ID}} · {{.Name}} ({{.StartDate}} → {{.EndDate}}) · {{.Status}}</option>{{end}}
+                </select>
+                {{else}}
+                <p class="wizard-hint-warn">You have no periods yet. Create the first one below.</p>
+                {{end}}
+            </div>
+
+            <div class="wizard-divider"><span>or</span></div>
+
+            <div class="wizard-choice">
+                <label class="wizard-choice-label">
+                    <input type="radio" name="period_mode" value="new" onchange="toggleCyclePeriodMode()">
+                    Create a new period
+                </label>
+                <div class="space-y-3" id="cycle-new-period" style="display: none;">
+                    <input type="text" name="new_period_name" placeholder="e.g. Q3 2026" class="form-input form-input-lg">
+                    <textarea name="new_period_description" placeholder="What this period covers (optional)" class="form-textarea"></textarea>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="form-group">
+                            <label class="form-label-sm">Start Date</label>
+                            <input type="date" name="new_period_start" class="form-input form-input-lg">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label-sm">End Date</label>
+                            <input type="date" name="new_period_end" class="form-input form-input-lg">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="wizard-actions wizard-actions-end">
+                <a href="/pages/dashboard" class="btn btn-ghost">Cancel</a>
+                <button type="submit" class="btn btn-primary">Next: pick a template <i class="fa-solid fa-arrow-right text-xs"></i></button>
+            </div>
+        </form>
+    </div>
+
+    {{else if eq .Step 2}}
+    <!-- ── Step 2: template ── -->
+    <div class="card card-padded">
+        <h4 class="wizard-card-title">Which evaluation form should they fill in?</h4>
+        <p class="wizard-card-hint">Period: <strong>{{.PeriodName}}</strong>. Templates without questions are marked and cannot be used yet.</p>
+
+        {{if .Templates}}
+        <form class="space-y-4" method="post" action="/pages/cycle/template" data-ajax>
+            <input type="hidden" name="period_id" value="{{.PeriodID}}">
+            <div class="wizard-option-list">
+                {{range .Templates}}
+                <label class="wizard-option {{if eq .QuestionCount 0}}wizard-option-disabled{{end}}">
+                    <input type="radio" name="template_id" value="{{.ID}}" {{if eq .QuestionCount 0}}disabled{{end}}>
+                    <span class="wizard-option-body">
+                        <span class="wizard-option-name">{{.Name}}</span>
+                        <span class="wizard-option-meta">{{.SectionCount}} section{{if ne .SectionCount 1}}s{{end}} · {{.QuestionCount}} question{{if ne .QuestionCount 1}}s{{end}}{{if .Description}} · {{.Description}}{{end}}</span>
+                        {{if eq .QuestionCount 0}}
+                        <span class="wizard-option-warn"><i class="fa-solid fa-triangle-exclamation"></i> No questions yet - this template would score every evaluation 0%.</span>
+                        <a href="/pages/templates-eval/{{.ID}}?period_id={{$.PeriodID}}" class="tpl-structure-link">Add questions <i class="fa-solid fa-arrow-right text-xs"></i></a>
+                        {{end}}
+                    </span>
+                </label>
+                {{end}}
+            </div>
+            {{if eq .ReadyTemplates 0}}
+            <div class="tpl-banner tpl-banner-warn">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                <span>Nothing here can be used yet. Add questions to one of these templates, then come back to this step.</span>
+                <a href="/pages/templates-eval?period_id={{.PeriodID}}" class="btn btn-primary btn-sm">Add questions</a>
+            </div>
+            {{end}}
+            <div class="wizard-actions wizard-actions-end">
+                <button type="button" class="btn btn-ghost" data-url="/pages/cycle/back/period" data-request="POST"><i class="fa-solid fa-arrow-left text-xs"></i> Back</button>
+                <button type="submit" class="btn btn-primary">Next: choose who gets evaluated <i class="fa-solid fa-arrow-right text-xs"></i></button>
+            </div>
+        </form>
+        {{else}}
+        <div class="wizard-actions wizard-actions-end">
+            <button type="button" class="btn btn-ghost" data-url="/pages/cycle/back/period" data-request="POST"><i class="fa-solid fa-arrow-left text-xs"></i> Back</button>
+            <a href="/pages/templates-eval?period_id={{.PeriodID}}" class="btn btn-primary">Go to templates</a>
+        </div>
+        {{end}}
+    </div>
+
+    {{else if eq .Step 3}}
+    <!-- ── Step 3: scope ── -->
+    <div class="card card-padded">
+        <h4 class="wizard-card-title">Who should be evaluated?</h4>
+        <p class="wizard-card-hint">Period: <strong>#{{.PeriodID}} · {{.PeriodName}}</strong> · Template: <strong>#{{.TemplateID}} · {{.TemplateName}}</strong></p>
+
+        <form id="cycle-scope-form" class="space-y-4" method="post" action="/pages/cycle/scope" data-ajax>
+            <input type="hidden" name="period_id" value="{{.PeriodID}}">
+            <input type="hidden" name="template_id" value="{{.TemplateID}}">
+
+            <!-- ── Pick individuals ── -->
+            <div class="form-group">
+                <label class="form-label-sm">Who does the evaluating?</label>
+                <select name="evaluator_id" class="form-select form-input-lg">
+                    <option value="">Choose an evaluator</option>
+                    {{range .Workers}}<option value="{{.UserID}}" {{if eq .UserID $.EvaluatorID}}selected{{end}}>{{.Name}} · {{.EmployeeCode}}</option>{{end}}
+                </select>
+                <p class="wizard-hint" style="margin-top: 0.5rem;">
+                    A candidate has no manager of their own, so one employee assesses everybody you tick below.
+                </p>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label-sm">
+                    Candidates to evaluate<span id="cycle-selected-count">{{if .SelectedCandidateIDs}} · {{len .SelectedCandidateIDs}} selected{{end}}</span>
+                </label>
+                {{if .Candidates}}
+                <label class="wizard-choice" style="margin-bottom: 0.5rem;">
+                    <span class="wizard-choice-label" style="margin-bottom: 0;">
+                        <input type="checkbox" id="cycle-select-all" {{if .AllSelected}}checked{{end}} onchange="cycleToggleAllCandidates(this)">
+                        <span>Select all ({{len .Candidates}})</span>
+                    </span>
+                </label>
+                <div class="wizard-option-list" id="cycle-candidate-list">
+                    {{range .Candidates}}
+                    <div class="wizard-option">
+                        <label class="wizard-option-pick">
+                            <input type="checkbox" class="cycle-candidate" name="candidate_ids" value="{{.ID}}" {{if .Checked}}checked{{end}}
+                                   onchange="cycleSyncScopeSelection()">
+                            <span class="wizard-option-body">
+                                <span class="wizard-option-name">{{.Name}}</span>
+                                <span class="wizard-option-meta">{{if .Email}}{{.Email}} · {{end}}{{.Status}}</span>
+                                {{if .Assigned}}<span class="wizard-option-warn"><i class="fa-solid fa-circle-info"></i> Already has this template assigned in this period{{if not .Droppable}} - it will be skipped{{end}}.</span>{{end}}
+                            </span>
+                        </label>
+                        <!-- The row sits inside the scope form, so the drop posts with
+                             everything this step already knows - no second form, which
+                             HTML does not allow. -->
+                        {{range .Droppable}}
+                        <button type="button" class="btn btn-sm btn-ghost cycle-option-drop" data-vals='{"drop_assignment_id": "{{.ID}}"}' data-confirm='{{if eq .Status "started"}}Drop this started evaluation? The answers saved so far go with it.{{else}}Drop this pending evaluation from the period?{{end}}' data-url="/pages/cycle/assignment/drop" data-request="POST">
+                            <i class="fa-solid fa-xmark text-xs"></i> Drop
+                        </button>
+                        {{end}}
+                    </div>
+                    {{end}}
+                </div>
+                <p class="wizard-hint" style="margin-top: 0.5rem;">
+                    Tick the people this run is for. The table below shows what each tick will create before anything is saved.
+                </p>
+                {{else}}
+                <p class="wizard-hint-warn">There are no candidates in the pipeline yet - nobody can be ticked.</p>
+                <a href="/pages/candidates" class="btn btn-primary btn-sm">Go to candidates</a>
+                {{end}}
+            </div>
+
+            <div class="form-group">
+                <label class="form-label-sm">Due Date (optional)</label>
+                <input type="date" name="due_date" value="{{.DueDate}}" class="form-input form-input-lg">
+            </div>
+
+            {{if .PreviewReady}}
+            <!-- Result of the last "Next": the same computation it ran, with the
+                 reason a row was skipped beside the controls that can fix it. -->
+            <div class="form-group">
+                <label class="form-label-sm">What happens when you continue</label>
+                {{if .WillCreate}}
+                <p class="wizard-hint">
+                    <strong>{{.WillCreate}}</strong> evaluation{{if ne .WillCreate 1}}s{{end}} will be created
+                    {{if .Skipped}}, {{.Skipped}} candidate skipped{{end}}.
+                </p>
+                {{else}}
+                <p class="wizard-hint-warn">Nothing can be created from the choices above yet - the table below says why.</p>
+                {{end}}
+                {{if .Skipped}}
+                <div class="table-container" style="margin-top: 0.75rem;">
+                    <table>
+                        <thead class="table-head">
+                            <tr>
+                                <th>Evaluatee</th>
+                                <th>Evaluator</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {{range .Pairs}}
+                            <tr class="{{if .Skipped}}history-row-skipped{{end}}">
+                                <td class="table-cell-bold">{{.EvaluateeName}}</td>
+                                <td class="table-cell-muted">{{.EvaluatorName}}</td>
+                                <td>
+                                    {{if .Skipped}}
+                                    <span class="badge badge-inactive">{{.SkipReason}}</span>
+                                    {{else}}
+                                    <span class="badge badge-active">Will be created</span>
+                                    {{end}}
+                                </td>
+                            </tr>
+                            {{end}}
+                        </tbody>
+                    </table>
+                </div>
+                {{end}}
+            </div>
+            {{end}}
+
+            {{if and (not .WillCreate) .BlockedReason}}
+            <div class="wizard-alert" role="alert">
+                <i class="fa-solid fa-circle-exclamation"></i>
+                <span>{{.BlockedReason}}</span>
+            </div>
+            {{end}}
+            <div class="wizard-actions wizard-actions-end">
+                <button type="button" data-vals='{"period_id": "{{.PeriodID}}"}' class="btn btn-ghost" data-url="/pages/cycle/back/template" data-request="POST"><i class="fa-solid fa-arrow-left text-xs"></i> Back</button>
+                {{if .BlockedReason}}
+                <button type="button" class="btn btn-ghost" data-url="/pages/cycle/back/period" data-request="POST">Choose another period <i class="fa-solid fa-arrow-right text-xs"></i></button>
+                {{end}}
+                <button type="submit" class="btn btn-primary">Next: review <i class="fa-solid fa-arrow-right text-xs"></i></button>
+            </div>
+        </form>
+
+    </div>
+
+    {{else}}
+    <!-- ── Step 4: review & launch ── -->
+    <div class="card card-padded">
+        <h4 class="wizard-card-title">Check this before it goes out</h4>
+        <p class="wizard-card-hint">Each evaluator gets a notification-free pending evaluation they can start from the Evaluations page.</p>
+
+        <div class="wizard-summary">
+            <div class="wizard-summary-row"><span>Period</span><strong>{{.PeriodName}}</strong></div>
+            <div class="wizard-summary-row"><span>Template</span><strong>{{.TemplateName}}</strong></div>
+            <div class="wizard-summary-row"><span>Scope</span><strong>{{len .SelectedCandidateIDs}} candidate{{if ne (len .SelectedCandidateIDs) 1}}s{{end}} chosen by hand</strong></div>
+            <div class="wizard-summary-row"><span>Pairing</span><strong>One evaluator for everyone{{if .EvaluatorName}} ({{.EvaluatorName}}){{end}}</strong></div>
+            <div class="wizard-summary-row"><span>Due date</span><strong>{{if .DueDate}}{{.DueDate}}{{else}}None{{end}}</strong></div>
+            <div class="wizard-summary-row"><span>Will be created</span><strong>{{.WillCreate}}</strong></div>
+        </div>
+
+        <div class="table-container" style="margin-top: 1.25rem;">
+            <table>
+                <thead class="table-head">
+                    <tr>
+                        <th>Evaluatee</th>
+                        <th>Evaluator</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{range .Pairs}}
+                    <tr class="{{if .Skipped}}history-row-skipped{{end}}">
+                        <td class="table-cell-bold">{{.EvaluateeName}}</td>
+                        <td class="table-cell-muted">{{.EvaluatorName}}</td>
+                        <td>
+                            {{if .Skipped}}
+                            <span class="badge badge-inactive">{{.SkipReason}}</span>
+                            {{else}}
+                            <span class="badge badge-active">Will be created</span>
+                            {{end}}
+                        </td>
+                    </tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
+
+        <form class="space-y-4" method="post" action="/pages/cycle/launch" data-ajax>
+            <input type="hidden" name="period_id" value="{{.PeriodID}}">
+            <input type="hidden" name="template_id" value="{{.TemplateID}}">
+            <input type="hidden" name="due_date" value="{{.DueDate}}">
+            <input type="hidden" name="evaluator_id" value="{{.EvaluatorID}}">
+            {{range .SelectedCandidateIDs}}<input type="hidden" name="candidate_ids" value="{{.}}">{{end}}
+            <div class="wizard-actions wizard-actions-end">
+                <button type="button" data-include="closest form" class="btn btn-ghost" data-url="/pages/cycle/back/scope" data-request="POST"><i class="fa-solid fa-arrow-left text-xs"></i> Back</button>
+                <button type="submit" class="btn btn-love"><i class="fa-solid fa-paper-plane text-xs"></i> Create {{.WillCreate}} evaluations</button>
+            </div>
+        </form>
+    </div>
+    {{end}}
+</div>
+
+<script>
+function toggleCyclePeriodMode() {
+    var isNew = document.querySelector('input[name="period_mode"]:checked').value === 'new';
+    document.getElementById('cycle-new-period').style.display = isNew ? 'block' : 'none';
+    var existing = document.getElementById('cycle-existing-period');
+    if (existing) existing.style.display = isNew ? 'none' : 'block';
+}
+// "Select all" is not a field of its own: it just flips every tick. Nothing
+// is requested until "Next", so the step never re-renders under the cursor.
+function cycleToggleAllCandidates(master) {
+    var boxes = document.querySelectorAll('#cycle-candidate-list .cycle-candidate');
+    boxes.forEach(function (box) { box.checked = master.checked; });
+    cycleSyncScopeSelection();
+}
+// Keep the master tick and the "N selected" count in step with the boxes.
+function cycleSyncScopeSelection() {
+    var boxes = document.querySelectorAll('#cycle-candidate-list .cycle-candidate');
+    var checked = 0;
+    boxes.forEach(function (box) { if (box.checked) checked++; });
+    var master = document.getElementById('cycle-select-all');
+    if (master) master.checked = boxes.length > 0 && checked === boxes.length;
+    var count = document.getElementById('cycle-selected-count');
+    if (count) count.textContent = checked > 0 ? ' · ' + checked + ' selected' : '';
+}
+</script>
+{{end}}

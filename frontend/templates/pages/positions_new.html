@@ -1,0 +1,38 @@
+{{define "page-positions-new"}}
+<div class="space-y-6">
+    <div class="page-header">
+        <div class="page-header-left">
+            <h3 class="page-title">Add Position</h3>
+            <p class="page-subtitle">Create a new job position under a department</p>
+        </div>
+        <div class="page-actions">
+            <a href="/pages/organizations" class="btn btn-ghost"><i class="fa-solid fa-arrow-left text-xs"></i> Back</a>
+        </div>
+    </div>
+
+    <div class="card-section">
+        <form data-push-url="/pages/organizations" data-form-status="Position created successfully." class="dialog-body" method="post" action="/pages/positions" data-ajax>
+            <div class="form-group">
+                <label class="form-label-sm">Name</label>
+                <input type="text" name="name" required class="form-input form-input-lg" placeholder="e.g. Software Engineer">
+            </div>
+            <div class="form-group">
+                <label class="form-label-sm">Department</label>
+                <select name="department_id" required class="form-select form-input-lg">
+                    <option value="">Select a department</option>
+                    {{range .Departments}}<option value="{{.ID}}">{{.Name}}</option>{{end}}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label-sm">Description</label>
+                <textarea name="description" class="form-textarea" placeholder="Optional description"></textarea>
+            </div>
+            <div data-form-status class="mb-2 text-sm badge badge-default"></div>
+            <div class="dialog-footer">
+                <a href="/pages/organizations" class="btn btn-ghost">Cancel</a>
+                <button type="submit" class="btn btn-iris">Create Position</button>
+            </div>
+        </form>
+    </div>
+</div>
+{{end}}

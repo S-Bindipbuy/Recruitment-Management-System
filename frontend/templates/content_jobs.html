@@ -1,0 +1,29 @@
+<div class="space-y-6">
+    <div class="public-page-header">
+        <h1 class="public-page-title">Open Positions</h1>
+        <p class="public-page-subtitle">Browse our current job openings and apply today.</p>
+    </div>
+
+    <div class="space-y-4">
+        {{range .Postings}}
+        <a href="/jobs/{{.ID}}" class="public-job-card" style="display:block; text-decoration:none; color:inherit;">
+            <div>
+                <h3 class="public-job-title" style="color: var(--rose-pine);">{{.Title}}</h3>
+                <div class="public-job-meta">
+                    <span class="public-job-meta-item"><i class="fa-solid fa-building"></i>{{.DepartmentName}}</span>
+                    <span class="public-job-meta-item"><i class="fa-solid fa-briefcase"></i>{{.PositionName}}</span>
+                    <span class="public-job-meta-item"><i class="fa-solid fa-clock"></i>{{.EmploymentType}}</span>
+                </div>
+            </div>
+            <div style="margin-top: 1rem; display: flex; justify-content: flex-end;">
+                <span style="font-size: 0.875rem; font-weight: 600; color: var(--rose-pine);">View Details <i class="fa-solid fa-arrow-right" style="font-size: 0.75rem;"></i></span>
+            </div>
+        </a>
+        {{else}}
+        <div class="public-empty">
+            <i class="fa-regular fa-folder-open public-empty-icon"></i>
+            <p class="public-empty-text">No open positions at the moment. Check back later!</p>
+        </div>
+        {{end}}
+    </div>
+</div>

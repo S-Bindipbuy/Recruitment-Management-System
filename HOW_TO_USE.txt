@@ -1,0 +1,483 @@
+============================================================
+  EVALUATION MANAGEMENT SYSTEM (EMS) - HOW TO USE
+============================================================
+
+TABLE OF CONTENTS
+-----------------
+  1. What is this system?
+  2. Logging in and first-time setup
+  3. Organization setup
+  4. Managing users and roles
+  5. Recruitment workflow
+  6. Evaluation workflow
+  7. Reports and analytics
+  8. Quick reference
+
+
+============================================================
+1. WHAT IS THIS SYSTEM?
+============================================================
+
+EMS is a tool for managing employees, hiring candidates, and
+running performance evaluations in your organization.
+
+Main features:
+  - Manage your org structure (departments, positions)
+  - Post jobs and track candidates
+  - Schedule interviews and collect feedback
+  - Create evaluation forms and assign them to workers
+  - Track results with reports and analytics
+
+The system has two sides:
+  - ADMIN SIDE: The main app (login required)
+  - PUBLIC SIDE: Job listings at /jobs (no login needed)
+
+The sidebar is grouped into sections:
+  Overview        - Dashboard
+  Organization    - Organizations, Departments, Positions, Employees
+  Recruitment     - Candidates, Job Postings, Interviews
+  Evaluation      - Run a Cycle, Evaluations, Periods, Templates,
+                    Approvals
+  Analytics       - Reports, Recruitment Reports
+  Administration  - Users, Roles, Permissions (admins only)
+
+Menu items appear only when your role has the matching
+permission - a limited user sees fewer links.
+
+
+============================================================
+2. LOGGING IN AND FIRST-TIME SETUP
+============================================================
+
+LOGGING IN
+  Open the app in your browser (the root URL, e.g.
+  http://localhost:3000) and sign in with your email and
+  password.
+
+  On a development install the system creates an admin
+  account automatically:
+      email:    admin@example.com
+      password: admin123
+  Sign in with it, then change the password. Production
+  installs (APP_ENV=production) skip this account - create
+  your own admin as shown below.
+
+FIRST TIME SETUP (do this in order):
+
+  Step 1: Create your Organization
+    Organization > Organizations > "New Organization"
+    Enter name and description > save
+
+  Step 2: Create a Department
+    Organization > Departments > "Add Department"
+    Pick your organization from the dropdown > enter name > save
+
+  Step 3: Create a Position
+    Organization > Positions > "Add Position"
+    Pick your department from the dropdown > enter name > save
+
+  Step 4: Create Users
+    Administration > Users > "Add User"
+    Enter name, email, password > assign a role > save
+
+  Step 5: Create Employees
+    Organization > Employees > "Add Employee"
+    Pick a user, department, and position > enter hire date > save
+
+  Step 6: Adjust Roles (optional)
+    Administration > Roles > create/edit roles and their
+    permissions, then assign roles to users on the Users page.
+    The built-in "admin" role already has full access.
+
+
+============================================================
+3. ORGANIZATION SETUP
+============================================================
+
+The org structure follows this hierarchy:
+
+  Organization
+    └── Department
+          └── Position
+                └── Employee (a User assigned to a Position)
+
+ORGANIZATIONS (/pages/organizations)
+  - Create: click "New Organization", fill name + description
+  - Edit: click the pen icon on any row
+  - Delete: click the trash icon (confirm required)
+
+DEPARTMENTS (/pages/departments)
+  - Create: click "Add Department", pick an organization, fill details
+  - Edit: click the pen icon
+  - Delete: click the trash icon
+
+POSITIONS (/pages/positions)
+  - Create: click "Add Position", pick a department, fill details
+  - Edit: click the pen icon
+  - Delete: click the trash icon
+
+EMPLOYEES (/pages/employees)
+  - Create: click "Add Employee"
+    - User: pick from users who are not yet employees
+    - Employee Code: unique code (e.g. EMP001)
+    - Department: pick from your departments
+    - Position: pick from your positions
+    - Hire Date: select date
+
+  Note: Employees are your "workers". They can be assigned as
+  evaluators, interviewers, and approvers throughout the system.
+
+
+============================================================
+4. MANAGING USERS AND ROLES
+============================================================
+
+USERS (/pages/users)  [admins only]
+  - Create: click "Add User", fill name, email, password, role
+  - Edit: click the pen icon; change name, email, status, role
+  - Delete: click the trash icon
+  - Status: active or inactive
+
+  The edit dialog remembers the user's current role. Only admins
+  (a role named "admin") can open the Users page at all.
+
+  After creating a user, you can make them an employee by
+  going to Organization > Employees > Add Employee and
+  selecting that user.
+
+ROLES (/pages/roles)  [admins only]
+  - Create: click "Add Role", enter name + description
+  - Edit: click the pen icon
+  - Delete: click the trash icon (warns if assigned to users)
+  - Permissions: click the "Permissions" button on a role row
+
+  How permissions work:
+  - Permissions are grouped by feature area:
+      General, Organization, Recruitment, Evaluation,
+      Analytics, Administration
+  - For each area you pick an ACCESS LEVEL from a dropdown:
+      No access / View only / Manage / Full control / Custom
+  - Evaluation has dedicated levels:
+      "Evaluate (fill my assigned)"  -> can fill their own evaluations only
+      "Assign and manage"            -> can assign + run any evaluation
+      "Full control"                 -> everything for that area
+  - Click "Customize individual permissions" to expand an area
+    and tick the individual raw permissions instead.
+  - The `admin` role name is special: it is the only role that can
+    manage users, roles and permissions.
+
+  You can see how many users have each role in the Users column.
+
+
+============================================================
+5. RECRUITMENT WORKFLOW
+============================================================
+
+Step-by-step hiring process:
+
+  A. POST A JOB
+  ─────────────
+  1. Go to Recruitment > Job Postings
+  2. Click "Create Job Posting" - this opens the job wizard
+  3. Wizard steps (one decision per screen, you can go back):
+       Basics  - title, position, employment type
+       Details - description, requirements, salary range
+       Terms   - skills and notes
+  4. On the last step choose to save as a draft or publish
+  5. From the list you can also Publish / Close / Reopen /
+     Delete a posting at any time
+
+  Published jobs appear at /jobs for public applicants.
+
+  B. RECEIVE CANDIDATES
+  ─────────────────────
+  Candidates can apply in two ways:
+
+  Method 1 - Public application:
+    - Anyone visits /jobs
+    - Clicks a job posting
+    - Clicks "Apply Now" on the posting - the form opens
+      already filled with that job's title and salary
+    - Fills out the application form with CV
+    - No login required
+
+    The public header no longer carries an "Apply Now" link:
+    applications are started from a job posting. /apply on its
+    own still opens the same form, just without a job attached.
+
+  Method 2 - Internal upload:
+    - Go to Recruitment > Candidates
+    - Click "Add candidate CV"
+    - Fill in name, email, phone, skills
+    - Optionally link to a job posting
+    - Upload the CV file (PDF/DOC/DOCX, max 10MB)
+
+  C. CREATE INTERVIEW ROUNDS (one-time setup)
+  ───────────────────────────────────────────
+  Interviews belong to a round (HR screen, Technical, Final...)
+  of a job posting. Rounds are configured through the API -
+  there is no screen for them yet:
+
+    POST /api/interview-rounds
+    { "job_posting_id": 1, "name": "Technical", "round_number": 1,
+      "round_type": "technical", "max_score": 10, "pass_score": 6 }
+
+  Once a round exists it shows up in the round dropdown on the
+  Interviews page.
+
+  D. SCHEDULE INTERVIEWS
+  ──────────────────────
+  1. Go to Recruitment > Interviews
+  2. Click "Schedule Interview"
+  3. Fill in:
+     - Candidate: pick from dropdown
+     - Interview Round: pick the round (from section C)
+     - Interviewer: pick a worker/employee
+     - Date & Time: select when
+     - Duration: how long (default 60 min)
+     - Location: room name OR meeting link
+     - Notes: any additional info
+  4. Save
+
+  E. COLLECT INTERVIEW FEEDBACK
+  ─────────────────────────────
+  1. After the interview, go to Interviews page
+  2. Click "Feedback" on the scheduled interview
+  3. Fill in:
+     - Score: 0-10
+     - Recommendation: Strong Hire / Hire / Maybe / No Hire /
+       Strong No Hire
+     - Strengths: what went well
+     - Weaknesses: areas of concern
+     - Comments: additional notes
+  4. Submit
+
+  F. EVALUATE THE CANDIDATE (optional but recommended)
+  ────────────────────────────────────────────────────
+  1. Go to Recruitment > Candidates
+  2. Click "Assign Evaluation" on the candidate
+  3. Pick a period, template, and evaluator; set a due date
+  4. The evaluator fills the evaluation form (see Section 6)
+
+  G. HIRE THE CANDIDATE
+  ─────────────────────
+  1. Go to Recruitment > Candidates
+  2. Click "Accept Worker" (hidden once the candidate is hired)
+  3. Fill in:
+     - Interview rating: 1-5
+     - Temporary password: at least 8 characters
+       (give it to the new worker securely)
+     - Assessment notes: optional
+  4. This creates an active user account and employee record,
+     with the position taken from the job posting they
+     applied to
+
+  H. VIEW RECRUITMENT REPORTS
+  ──────────────────────────
+  Go to Analytics > Recruitment Reports for candidate summaries,
+  interviewer activity, and hiring decisions.
+  (Known issue: these reports are currently unavailable while
+   the underlying queries are being reworked.)
+
+
+============================================================
+6. EVALUATION WORKFLOW
+============================================================
+
+This is for evaluating employees (or candidates).
+
+Step-by-step:
+
+  A. CREATE AN EVALUATION PERIOD
+  ──────────────────────────────
+  1. Go to Evaluation > Periods
+  2. Click "New Period"
+  3. Fill in: name (e.g. "Q1 2026"), description, start/end dates
+  4. Save
+
+  B. CREATE AN EVALUATION TEMPLATE
+  ────────────────────────────────
+  1. Go to Evaluation > Templates
+  2. Click "New Template", fill in name + description, save
+  3. Open the template to reach the builder:
+     - "Add section" - e.g. "Technical Skills"
+     - Inside a section, "Add question"
+  4. Each question has:
+     - Type:
+         rating   : numeric 0-10 input (default)
+         text     : free-text textarea
+         number   : numeric input
+         boolean  : Yes/No dropdown
+     - Weight:  how much it counts in the score (default 1.0)
+     - Required: whether it must be answered
+
+  A template with no questions would score 0% - the builder
+  warns you about that.
+
+  C. ASSIGN EVALUATIONS
+  ─────────────────────
+  Two ways:
+
+  Single assignment - Evaluation > Evaluations > "New Assignment":
+     - Period, Template
+     - Evaluator: who will do the evaluation
+     - Evaluatee: who is being evaluated
+     - Due Date: when it should be done
+
+  Bulk (a whole cycle) - Evaluation > Run a Cycle:
+      The wizard walks four steps, one decision per screen:
+      1. Period  - pick an existing period, or create one
+                    (name + start/end date) on the same screen
+      2. Template - pick the template to evaluate with. A
+                    template with no questions is refused here,
+                    because it would score every evaluation 0%
+      3. Who gets evaluated - pick the evaluator, tick the
+                    candidates, set an optional due date. A live
+                    table shows what "Next" would create and
+                    why a row would be skipped
+      4. Review & launch - confirm, then all assignments are
+                    created at once
+
+      On step 3 a candidate who already has this template in
+      this period is flagged. You can "Drop" such a row to take
+      a pending or started evaluation back out of the period -
+      anything already handed in stays.
+
+      The wizard remembers your answers, so you can step back
+      and change any of them before launching.
+
+  D. FILL THE EVALUATION FORM
+  ───────────────────────────
+  1. Go to Evaluation > Evaluations
+  2. Click "Start" on a pending assignment
+  3. Click "Fill" to open the evaluation form
+  4. Answer each question in each section
+  5. Can add comments in the comments section
+  6. Click "Submit Evaluation"
+
+  Who can start an evaluation:
+  - The assigned evaluator (their role needs "Evaluate" access, or
+    Evaluation > Full control), OR
+  - Anyone with Evaluation > "Assign and manage" or "Full control"
+    (so an admin can start/run any evaluation).
+
+  The system automatically calculates a score, percentage,
+  and grade based on the answers.
+
+  E. APPROVAL PROCESS
+  ───────────────────
+  After submission:
+  1. Go to Evaluation > Approvals
+  2. An approval request is automatically created
+     (level 1, for the approver)
+  3. The approver reviews the evaluation
+  4. Clicks "Approve" (completes the assignment) or
+     "Reject" (sends it back for revision with a comment)
+  5. A revised evaluation can be resubmitted, which creates a
+     fresh approval request
+
+  F. VIEW RESULTS
+  ───────────────
+  - On the Evaluations page, completed assignments show
+    the score, percentage, and grade
+  - Evaluation > Periods > open a period's history for all
+    results, approvals, and averages of that period
+  - Go to Analytics > Reports for department-level analytics
+
+
+============================================================
+7. REPORTS AND ANALYTICS
+============================================================
+
+EVALUATION REPORTS (/pages/reports)
+  - Summary cards: total employees, completed evaluations,
+    pending approvals, total assignments
+  - Department performance chart (bar chart by department)
+  - All evaluation results table with scores and grades
+
+RECRUITMENT REPORTS (/pages/recruitment-reports)
+  - Summary cards: total candidates, active interviewers,
+    hiring decisions, top score
+  - Candidate evaluation summaries
+  - Interviewer activity (who interviews the most)
+  - Hiring decisions overview
+  Note: currently unavailable - see the known issue in
+  Section 5H.
+
+PERIOD HISTORY (/pages/periods/:id/history)
+  - Every result of one period: scores, grades, approvals,
+    department averages
+
+DASHBOARD (/pages/dashboard)
+  - Quick stats at a glance
+  - Quick action buttons to jump to common tasks
+
+
+============================================================
+8. QUICK REFERENCE
+============================================================
+
+PAGE SHORTCUTS:
+  /pages                       Dashboard
+  /pages/organizations         Manage organizations
+  /pages/departments           Manage departments
+  /pages/positions             Manage positions
+  /pages/employees             Manage employees
+  /pages/candidates            Manage candidates/CVs
+  /pages/job-postings          Manage job postings
+  /pages/job-wizard            Create a job posting (wizard)
+  /pages/interviews            Schedule interviews
+  /pages/cycle                 Run an evaluation cycle (wizard)
+  /pages/evaluations           Evaluation assignments
+  /pages/periods               Evaluation periods
+  /pages/periods/:id/history   Results of one period
+  /pages/templates-eval        Evaluation templates
+  /pages/approvals             Approval workflow
+  /pages/reports               Evaluation reports
+  /pages/recruitment-reports   Recruitment analytics
+  /pages/users                 User management
+  /pages/roles                 Role management
+  /pages/permissions           Permission catalog
+  /jobs                        Public job listings
+  /apply                       Public application form
+
+WIZARD STEPS (both wizards show one decision per
+screen and carry the answers forward):
+  /pages/cycle                 Period -> Template ->
+                               Who gets evaluated -> Review
+  /pages/cycle/period          Choose (or create) the period
+  /pages/cycle/template        Choose the template
+  /pages/cycle/scope           Choose the evaluator and
+                               the candidates
+  /pages/cycle/launch          Create the assignments
+  /pages/job-wizard            Basics -> Details ->
+                               Terms -> Review
+  /pages/job-wizard/basics     Job title, position, type
+  /pages/job-wizard/details    Description, requirements
+  /pages/job-wizard/terms      Skills, salary, notes
+  /pages/job-wizard/launch     Save as draft or publish
+
+STATUS VALUES:
+  Job Posting:    draft -> published -> closed (reopen returns
+                  it to published)
+  Interview:      scheduled -> completed / cancelled
+  Assignment:     pending -> started -> submitted -> completed
+  Approval:       pending -> approved / rejected
+  Candidate:      new -> ... -> hired
+  General:        active / inactive
+
+TIPS:
+  - Always set up Organization > Department > Position first
+  - Create users before making them employees
+  - Publish job postings to make them visible to applicants
+  - Create interview rounds (API, section 5C) before scheduling
+    interviews - otherwise the round dropdown is empty
+  - Use "Run a Cycle" to assign many evaluations at once
+  - Give a template at least one rating question before you
+    run a cycle with it - the wizard refuses empty templates
+  - Use the dashboard for a quick overview of everything
+  - Sidebar links hide themselves when your role lacks the
+    permission - if you cannot find a page, ask an admin for
+    a higher access level
+
+============================================================

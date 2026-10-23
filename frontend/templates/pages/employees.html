@@ -1,0 +1,84 @@
+{{define "page-employees"}}
+<div class="space-y-6" id="employees-page">
+    <div class="page-header">
+        <h3 class="page-title">Employees</h3>
+        <button onclick="document.getElementById('add-employee-dialog').showModal()" class="btn btn-primary">
+            <i class="fa-solid fa-plus text-xs"></i> Add Employee
+        </button>
+    </div>
+
+    <div class="table-container">
+        <table>
+            <thead class="table-head">
+                <tr>
+                    <th>Code</th>
+                    <th>Name</th>
+                    <th>Department</th>
+                    <th>Position</th>
+                    <th>Hire Date</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {{if .Employees}}
+                {{range .Employees}}
+                <tr>
+                    <td>{{.Employee.EmployeeCode}}</td>
+                    <td>{{.UserName}}</td>
+                    <td>{{.DepartmentName}}</td>
+                    <td>{{.PositionName}}</td>
+                    <td>{{if .Employee.HireDate}}{{.Employee.HireDate.Format "2006-01-02"}}{{else}}-{{end}}</td>
+                    <td>
+                        <span class="badge {{if eq .Employee.Status "active"}}badge-active{{else}}badge-inactive{{end}}">{{.Employee.Status}}</span>
+                    </td>
+                </tr>
+                {{end}}
+                {{else}}
+                <tr><td colspan="6" class="text-center text-muted">No employees found</td></tr>
+                {{end}}
+            </tbody>
+        </table>
+    </div>
+
+    <dialog id="add-employee-dialog" class="dialog">
+        <form
+              class="dialog-body" method="post" action="/pages/employees" data-ajax data-close-dialog>
+            <h3 class="dialog-title">Add Employee</h3>
+            <div id="employee-form-error" class="hidden p-3 rounded-lg text-sm mb-2" style="background: #fef2f2; color: #b91c1c;" aria-live="polite"></div>
+            <div class="form-group">
+                <label class="form-label">User</label>
+                <select name="user_id" required class="form-select">
+                    <option value="">Select a user</option>
+                    {{range .Candidates}}<option value="{{.ID}}">{{.Name}}</option>{{end}}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Employee Code</label>
+                <input type="text" name="employee_code" required class="form-input">
+            </div>
+            <div class="form-group">
+                <label class="form-label">Department</label>
+                <select name="department_id" required class="form-select">
+                    <option value="">Select a department</option>
+                    {{range .Departments}}<option value="{{.ID}}">{{.Name}}</option>{{end}}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Position</label>
+                <select name="position_id" required class="form-select">
+                    <option value="">Select a position</option>
+                    {{range .Positions}}<option value="{{.ID}}">{{.Name}}</option>{{end}}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Hire Date</label>
+                <input type="date" name="hire_date" class="form-input">
+            </div>
+            <div class="dialog-footer">
+                <button type="button" onclick="this.closest('dialog').close()" class="btn btn-ghost">Cancel</button>
+                <button type="submit" class="btn btn-love">Save</button>
+            </div>
+        </form>
+    </dialog>
+</div>
+{{end}}

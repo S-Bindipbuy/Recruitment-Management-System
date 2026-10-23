@@ -1,0 +1,225 @@
+{{define "page-job-wizard"}}
+<div class="space-y-6 animate-fade-in" id="job-wizard-page">
+    <div class="page-header">
+        <div class="page-header-left">
+            <h3 class="page-title">New Job Posting</h3>
+            <p class="page-subtitle">Four short steps. Nothing to memorise - each screen only asks for what is still missing.</p>
+        </div>
+        <div class="page-actions">
+            <a href="/pages/job-postings" class="btn btn-ghost">All job postings</a>
+        </div>
+    </div>
+
+    <!-- Step indicator -->
+    <div class="wizard-steps">
+        <div class="wizard-step {{if ge .Step 1}}wizard-step-done{{end}} {{if eq .Step 1}}wizard-step-current{{end}}">
+            <span class="wizard-step-dot">{{if ge .Step 2}}<i class="fa-solid fa-check"></i>{{else}}1{{end}}</span>
+            <span class="wizard-step-label">The role</span>
+        </div>
+        <div class="wizard-step-line {{if ge .Step 2}}wizard-step-line-done{{end}}"></div>
+        <div class="wizard-step {{if ge .Step 2}}wizard-step-done{{end}} {{if eq .Step 2}}wizard-step-current{{end}}">
+            <span class="wizard-step-dot">{{if ge .Step 3}}<i class="fa-solid fa-check"></i>{{else}}2{{end}}</span>
+            <span class="wizard-step-label">What it involves</span>
+        </div>
+        <div class="wizard-step-line {{if ge .Step 3}}wizard-step-line-done{{end}}"></div>
+        <div class="wizard-step {{if ge .Step 3}}wizard-step-done{{end}} {{if eq .Step 3}}wizard-step-current{{end}}">
+            <span class="wizard-step-dot">{{if ge .Step 4}}<i class="fa-solid fa-check"></i>{{else}}3{{end}}</span>
+            <span class="wizard-step-label">Skills &amp; pay</span>
+        </div>
+        <div class="wizard-step-line {{if ge .Step 4}}wizard-step-line-done{{end}}"></div>
+        <div class="wizard-step {{if eq .Step 4}}wizard-step-current{{end}}">
+            <span class="wizard-step-dot">4</span>
+            <span class="wizard-step-label">Review</span>
+        </div>
+    </div>
+
+    {{if .ErrMessage}}
+    <div class="wizard-alert">
+        <i class="fa-solid fa-circle-exclamation"></i>
+        <span>{{.ErrMessage}}</span>
+    </div>
+    {{end}}
+    {{if .Notice}}
+    <div class="tpl-banner tpl-banner-ok">
+        <i class="fa-solid fa-circle-check"></i>
+        <span>{{.Notice}}</span>
+    </div>
+    {{end}}
+
+    {{if .Created}}
+    <!-- ── Done ── -->
+    <div class="card card-padded">
+        <div class="wizard-done">
+            <div class="wizard-done-icon"><i class="fa-solid fa-check"></i></div>
+            <h4 class="wizard-done-title">{{.Title}}</h4>
+            <p class="wizard-done-text">
+                {{if .Published}}It is live now and can start taking applications.{{else}}It was saved as a draft. Publish it from the list when you are ready.{{end}}
+            </p>
+            <div class="wizard-summary">
+                <div class="wizard-summary-row"><span>Position</span><strong>{{.PositionName}}</strong></div>
+                <div class="wizard-summary-row"><span>Type</span><strong>{{.EmploymentType}}</strong></div>
+                <div class="wizard-summary-row"><span>Status</span><strong>{{if .Published}}published{{else}}draft{{end}}</strong></div>
+            </div>
+            <div class="wizard-actions">
+                <a href="/pages/job-postings" class="btn btn-primary">Go to job postings</a>
+                {{if .Published}}
+                <a href="/pages/job-postings/{{.JobID}}/candidates" class="btn btn-ghost">See candidates</a>
+                {{end}}
+                <a href="/pages/job-wizard" class="btn btn-ghost">Post another job</a>
+            </div>
+        </div>
+    </div>
+
+    {{else if eq .Step 1}}
+    <!-- ── Step 1: the role ── -->
+    <div class="card card-padded">
+        <h4 class="wizard-card-title">What job are you posting?</h4>
+        <p class="wizard-card-hint">Just the identity of the role for now. What it involves and what it pays come next.</p>
+
+        <form class="space-y-4" method="post" action="/pages/job-wizard/basics" data-ajax>
+            <div class="form-group">
+                <label class="form-label-sm">Job title</label>
+                <input type="text" name="title" value="{{.Title}}" required class="form-input form-input-lg" placeholder="e.g. Senior Software Engineer">
+            </div>
+
+            <div class="form-group">
+                <label class="form-label-sm">Position</label>
+                <select name="position_id" required class="form-select form-input-lg">
+                    <option value="">Select position</option>
+                    {{range .Positions}}<option value="{{.ID}}" {{if eq .ID $.PositionID}}selected{{end}}>{{.Name}}</option>{{end}}
+                </select>
+                {{if not .Positions}}<p class="wizard-hint-warn">No positions defined yet. Add one under Organisation first.</p>{{end}}
+            </div>
+
+            <div class="form-group">
+                <label class="form-label-sm">Employment type</label>
+                <select name="employment_type" class="form-select form-input-lg">
+                    {{range .EmploymentTypes}}<option value="{{.Value}}" {{if eq .Value $.EmploymentType}}selected{{end}}>{{.Label}}</option>{{end}}
+                </select>
+            </div>
+
+            <div class="wizard-actions wizard-actions-end">
+                <a href="/pages/job-postings" class="btn btn-ghost">Cancel</a>
+                <button type="submit" class="btn btn-primary">Next: describe the job <i class="fa-solid fa-arrow-right text-xs"></i></button>
+            </div>
+        </form>
+    </div>
+
+    {{else if eq .Step 2}}
+    <!-- ── Step 2: what it involves ── -->
+    <div class="card card-padded">
+        <h4 class="wizard-card-title">What would they be doing?</h4>
+        <p class="wizard-card-hint"><strong>{{.Title}}</strong> · {{.PositionName}} · {{.EmploymentType}}</p>
+
+        <form class="space-y-4" method="post" action="/pages/job-wizard/details" data-ajax>
+            <input type="hidden" name="title" value="{{.Title}}">
+            <input type="hidden" name="position_id" value="{{.PositionID}}">
+            <input type="hidden" name="employment_type" value="{{.EmploymentType}}">
+
+            <div class="form-group">
+                <label class="form-label-sm">Description</label>
+                <textarea name="description" rows="5" class="form-textarea" placeholder="What the day to day looks like, the team, why the role exists.">{{.Description}}</textarea>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label-sm">Requirements</label>
+                <textarea name="requirements" rows="5" class="form-textarea" placeholder="What someone needs to have done before to be right for this. One per line reads well.">{{.Requirements}}</textarea>
+                <p class="wizard-hint-warn">Either this or the description is needed before the posting can be created.</p>
+            </div>
+
+            <div class="wizard-actions">
+                <button type="button" class="btn btn-ghost" data-url="/pages/job-wizard/back/basics" data-request="POST"><i class="fa-solid fa-arrow-left text-xs"></i> Back</button>
+                <button type="submit" class="btn btn-primary">Next: skills and pay <i class="fa-solid fa-arrow-right text-xs"></i></button>
+            </div>
+        </form>
+    </div>
+
+    {{else if eq .Step 3}}
+    <!-- ── Step 3: skills and terms ── -->
+    <div class="card card-padded">
+        <h4 class="wizard-card-title">What do they need, and what does it pay?</h4>
+        <p class="wizard-card-hint">Both are optional. Paying less attention to them now is fine - you can edit them later.</p>
+
+        <form class="space-y-4" method="post" action="/pages/job-wizard/terms" data-ajax>
+            <input type="hidden" name="title" value="{{.Title}}">
+            <input type="hidden" name="position_id" value="{{.PositionID}}">
+            <input type="hidden" name="employment_type" value="{{.EmploymentType}}">
+            <input type="hidden" name="description" value="{{.Description}}">
+            <input type="hidden" name="requirements" value="{{.Requirements}}">
+
+            <div class="form-group">
+                <label class="form-label-sm">Required skills</label>
+                <input type="text" name="skills_required" value="{{.SkillsRequired}}" class="form-input form-input-lg" placeholder="e.g. Go, JavaScript, Python">
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div class="form-group">
+                    <label class="form-label-sm">Minimum salary</label>
+                    <input type="number" name="salary_min" value="{{.SalaryMin}}" min="0" step="1000" class="form-input form-input-lg" placeholder="Optional">
+                </div>
+                <div class="form-group">
+                    <label class="form-label-sm">Maximum salary</label>
+                    <input type="number" name="salary_max" value="{{.SalaryMax}}" min="0" step="1000" class="form-input form-input-lg" placeholder="Optional">
+                </div>
+            </div>
+
+            <div class="wizard-actions">
+                <button type="button" class="btn btn-ghost" data-url="/pages/job-wizard/back/details" data-request="POST"><i class="fa-solid fa-arrow-left text-xs"></i> Back</button>
+                <button type="submit" class="btn btn-primary">Next: review <i class="fa-solid fa-arrow-right text-xs"></i></button>
+            </div>
+        </form>
+    </div>
+
+    {{else if eq .Step 4}}
+    <!-- ── Step 4: review ── -->
+    <div class="card card-padded">
+        <h4 class="wizard-card-title">Check it over before creating</h4>
+        <p class="wizard-card-hint">Nothing exists yet. Back is always safe.</p>
+
+        <div class="wizard-summary" style="margin-bottom: 1.25rem;">
+            <div class="wizard-summary-row"><span>Title</span><strong>{{.Title}}</strong></div>
+            <div class="wizard-summary-row"><span>Position</span><strong>{{.PositionName}}</strong></div>
+            <div class="wizard-summary-row"><span>Type</span><strong>{{.EmploymentType}}</strong></div>
+            {{if .SkillsRequired}}<div class="wizard-summary-row"><span>Skills</span><strong>{{.SkillsRequired}}</strong></div>{{end}}
+            {{if or .SalaryMin .SalaryMax}}
+            <div class="wizard-summary-row"><span>Salary</span><strong>{{if and .SalaryMin .SalaryMax}}${{.SalaryMin}} - ${{.SalaryMax}}{{else if .SalaryMin}}From ${{.SalaryMin}}{{else}}Up to ${{.SalaryMax}}{{end}}</strong></div>
+            {{end}}
+            <div class="wizard-summary-row"><span>Description</span><strong>{{if .Description}}included{{else}}-{{end}}</strong></div>
+            <div class="wizard-summary-row"><span>Requirements</span><strong>{{if .Requirements}}included{{else}}-{{end}}</strong></div>
+        </div>
+
+        <form class="space-y-4" method="post" action="/pages/job-wizard/launch" data-ajax>
+            <input type="hidden" name="title" value="{{.Title}}">
+            <input type="hidden" name="position_id" value="{{.PositionID}}">
+            <input type="hidden" name="employment_type" value="{{.EmploymentType}}">
+            <input type="hidden" name="description" value="{{.Description}}">
+            <input type="hidden" name="requirements" value="{{.Requirements}}">
+            <input type="hidden" name="skills_required" value="{{.SkillsRequired}}">
+            <input type="hidden" name="salary_min" value="{{.SalaryMin}}">
+            <input type="hidden" name="salary_max" value="{{.SalaryMax}}">
+
+            <div class="wizard-choice">
+                <label class="wizard-choice-label">
+                    <input type="radio" name="status" value="publish" {{if eq .Status "publish"}}checked{{end}}>
+                    Publish it now
+                </label>
+                <p class="wizard-card-hint" style="margin: 0;">Live straight away and visible to applicants.</p>
+            </div>
+
+            <div class="wizard-choice">
+                <label class="wizard-choice-label">
+                    <input type="radio" name="status" value="draft" {{if ne .Status "publish"}}checked{{end}}>
+                    Save as a draft
+                </label>
+                <p class="wizard-card-hint" style="margin: 0;">Keep it private and publish it from the list later.</p>
+            </div>
+
+            <div class="wizard-actions">
+                <button type="button" class="btn btn-ghost" data-url="/pages/job-wizard/back/terms" data-request="POST"><i class="fa-solid fa-arrow-left text-xs"></i> Back</button>
+                <button type="submit" class="btn btn-primary"><i class="fa-solid fa-plus text-xs"></i> Create job posting</button>
+            </div>
+        </form>
+    </div>
+    {{end}}
+</div>
+{{end}}
