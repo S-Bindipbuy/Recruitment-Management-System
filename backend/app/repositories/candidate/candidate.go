@@ -76,9 +76,8 @@ func (r *CandidateRepository) UpdateStatus(id int64, status string) error {
 	return err
 }
 
-// Hire creates the candidate's login, employee record, role assignment, and
-// assessment atomically. A partial hire would otherwise leave an unusable
-// account or an employee without a role.
+// Hire creates an employee record for the candidate and records the
+// assessment atomically.
 func (r *CandidateRepository) Hire(candidateID, evaluatorID, roleID int64, rating float64, notes, passwordHash string) error {
 	tx, err := database.DB.Beginx()
 	if err != nil {
@@ -115,43 +114,30 @@ func (r *CandidateRepository) Hire(candidateID, evaluatorID, roleID int64, ratin
 		}
 	}
 
-	result, err := tx.Exec(
-		"INSERT INTO users (name, email, password, status) VALUES (?, ?, ?, 'active')",
-		fullName, email, passwordHash,
-	)
-	if err != nil {
-		if strings.Contains(strings.ToLower(err.Error()), "unique") {
-			return fmt.Errorf("a user with this email already exists")
-		}
-		return err
-	}
-	userID, err := result.LastInsertId()
-	if err != nil {
-		return err
-	}
-
 	employeeCode := fmt.Sprintf("EMP-%06d", candidateID)
 	if _, err := tx.Exec(
 		`INSERT INTO employees (user_id, employee_code, department_id, position_id, hire_date, status)
 		 VALUES (?, ?, ?, ?, ?, 'active')`,
-		userID, employeeCode, departmentID, positionID, time.Now(),
+		nil, employeeCode, departmentID, positionID, time.Now(),
 	); err != nil {
 		return err
 	}
-	// Use the logged-in user as evaluator. If they no longer exist (e.g. DB was
-	// recreated), fall back to the newly created user so the hire can complete.
+
 	actualEvaluator := evaluatorID
 	var evalExists int
 	_ = tx.QueryRow("SELECT COUNT(*) FROM users WHERE id = ?", actualEvaluator).Scan(&evalExists)
 	if evalExists == 0 {
-		actualEvaluator = userID
+		// Fall back to a safe evaluator if session is invalid
+		_ = tx.QueryRow("SELECT id FROM users ORDER BY id LIMIT 1").Scan(&actualEvaluator)
 	}
-	if _, err := tx.Exec(
-		`INSERT INTO candidate_assessments (candidate_id, evaluator_id, skill_score, notes, recommendation)
-		 VALUES (?, ?, ?, ?, 'accepted')`,
-		candidateID, actualEvaluator, rating, strings.TrimSpace(notes),
-	); err != nil {
-		return err
+	if actualEvaluator > 0 {
+		if _, err := tx.Exec(
+			`INSERT INTO candidate_assessments (candidate_id, evaluator_id, skill_score, notes, recommendation)
+			 VALUES (?, ?, ?, ?, 'accepted')`,
+			candidateID, actualEvaluator, rating, strings.TrimSpace(notes),
+		); err != nil {
+			return err
+		}
 	}
 	if _, err := tx.Exec("UPDATE candidates SET status = 'hired', updated_at = CURRENT_TIMESTAMP WHERE id = ?", candidateID); err != nil {
 		return err

@@ -56,7 +56,11 @@ document.addEventListener('submit', async function(e) {
                 return;
             }
             setAuthToken(data.token);
-            openApp(currentPageTarget() || 'dashboard');
+            if (typeof initApp === 'function') {
+                initApp();
+            } else {
+                openApp(currentPageTarget() || 'dashboard');
+            }
         } catch (err) {
             const errEl = document.getElementById('login-error');
             const errTxt = document.getElementById('login-error-text');

@@ -33,7 +33,7 @@ func (h *EmployeeHandler) Get(c *fiber.Ctx) error {
 
 func (h *EmployeeHandler) Create(c *fiber.Ctx) error {
 	var req struct {
-		UserID       int64   `json:"user_id"`
+		UserID       *int64  `json:"user_id"`
 		EmployeeCode string  `json:"employee_code"`
 		DepartmentID int64   `json:"department_id"`
 		PositionID   int64   `json:"position_id"`

@@ -47,18 +47,6 @@ func main() {
 
 	app.Use(logger.New())
 
-	app.Static("/static", config.AppConfig.FrontendPath+"/static")
-
-	app.Get("/", func(c *fiber.Ctx) error {
-		return c.SendFile(config.AppConfig.FrontendPath + "/static/index.html")
-	})
-
-	app.Get("/favicon.ico", func(c *fiber.Ctx) error {
-		c.Set("Content-Type", "image/x-icon")
-		c.Set("Cache-Control", "public, max-age=86400")
-		return c.SendFile(config.AppConfig.FrontendPath + "/static/favicon.ico")
-	})
-
 	routes.SetupRoutes(app)
 
 	go func() {

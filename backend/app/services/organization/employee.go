@@ -10,7 +10,7 @@ import (
 
 type EmployeeService struct{}
 
-func (s *EmployeeService) Create(userID int64, employeeCode string, departmentID, positionID int64, managerID *int64, hireDate *time.Time) (*orgmodel.Employee, error) {
+func (s *EmployeeService) Create(userID *int64, employeeCode string, departmentID, positionID int64, managerID *int64, hireDate *time.Time) (*orgmodel.Employee, error) {
 	emp := &orgmodel.Employee{
 		UserID:       userID,
 		EmployeeCode: employeeCode,

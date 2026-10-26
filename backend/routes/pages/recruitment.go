@@ -34,5 +34,7 @@ func registerRecruitmentPages(pages fiber.Router, h *recruitment.RecruitmentHand
 	pages.Get("/interviews/:id/feedback", h.InterviewFeedback)
 	pages.Post("/interviews/:id/feedback", h.SubmitInterviewFeedback)
 
-	pages.Get("/recruitment-reports", h.RecruitmentReports)
+	pages.Get("/recruitment-reports", func(c *fiber.Ctx) error {
+		return c.Redirect("/pages/reports")
+	})
 }

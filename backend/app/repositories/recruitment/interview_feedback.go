@@ -48,8 +48,8 @@ func (r *InterviewFeedbackRepository) Update(fb *recmodel.InterviewFeedback) err
 func (r *InterviewRepository) GetCandidateSummary(candidateID int64) (*recmodel.CandidateEvaluationSummary, error) {
 	s := &recmodel.CandidateEvaluationSummary{}
 	err := database.DB.Get(s,
-		`SELECT c.id AS candidate_id, c.full_name AS candidate_name, p.name AS position_name,
-		 COUNT(i.id) AS total_interviews,
+		`SELECT c.id AS candidate_id, c.full_name AS candidate_name, COALESCE(p.name, '') AS position_name,
+		 COUNT(DISTINCT i.id) AS total_interviews,
 		 SUM(CASE WHEN ifb.score IS NOT NULL THEN 1 ELSE 0 END) AS completed_reviews,
 		 COALESCE(AVG(ifb.score), 0) AS average_score,
 		 COALESCE(MAX(ifb.score), 0) AS highest_score,
@@ -58,7 +58,8 @@ func (r *InterviewRepository) GetCandidateSummary(candidateID int64) (*recmodel.
 		      WHEN AVG(ifb.score) >= 5 THEN 'maybe'
 		      ELSE 'reject' END AS final_decision
 		 FROM candidates c
-		 JOIN positions p ON p.id = c.position_id
+		 LEFT JOIN job_postings jp ON jp.id = c.job_posting_id
+		 LEFT JOIN positions p ON p.id = jp.position_id
 		 LEFT JOIN interviews i ON i.candidate_id = c.id
 		 LEFT JOIN interview_feedback ifb ON ifb.interview_id = i.id
 		 WHERE c.id = ?
@@ -73,8 +74,8 @@ func (r *InterviewRepository) GetCandidateSummary(candidateID int64) (*recmodel.
 func (r *InterviewRepository) GetAllCandidateSummaries() ([]recmodel.CandidateEvaluationSummary, error) {
 	var summaries []recmodel.CandidateEvaluationSummary
 	err := database.DB.Select(&summaries,
-		`SELECT c.id AS candidate_id, c.full_name AS candidate_name, p.name AS position_name,
-		 COUNT(i.id) AS total_interviews,
+		`SELECT c.id AS candidate_id, c.full_name AS candidate_name, COALESCE(p.name, '') AS position_name,
+		 COUNT(DISTINCT i.id) AS total_interviews,
 		 SUM(CASE WHEN ifb.score IS NOT NULL THEN 1 ELSE 0 END) AS completed_reviews,
 		 COALESCE(AVG(ifb.score), 0) AS average_score,
 		 COALESCE(MAX(ifb.score), 0) AS highest_score,
@@ -83,7 +84,8 @@ func (r *InterviewRepository) GetAllCandidateSummaries() ([]recmodel.CandidateEv
 		      WHEN AVG(ifb.score) >= 5 THEN 'maybe'
 		      ELSE 'reject' END AS final_decision
 		 FROM candidates c
-		 JOIN positions p ON p.id = c.position_id
+		 LEFT JOIN job_postings jp ON jp.id = c.job_posting_id
+		 LEFT JOIN positions p ON p.id = jp.position_id
 		 LEFT JOIN interviews i ON i.candidate_id = c.id
 		 LEFT JOIN interview_feedback ifb ON ifb.interview_id = i.id
 		 GROUP BY c.id ORDER BY AVG(ifb.score) DESC`,
@@ -98,14 +100,14 @@ func (r *InterviewRepository) GetInterviewerActivity() ([]recmodel.InterviewerAc
 	var activities []recmodel.InterviewerActivity
 	err := database.DB.Select(&activities,
 		`SELECT u.id AS interviewer_id, u.name AS interviewer_name,
-		 COUNT(i.id) AS total_interviews,
+		 COUNT(DISTINCT i.id) AS total_interviews,
 		 SUM(CASE WHEN ifb.score IS NOT NULL THEN 1 ELSE 0 END) AS completed_reviews,
-		 SUM(CASE WHEN ifb.score IS NULL THEN 1 ELSE 0 END) AS pending_reviews,
+		 SUM(CASE WHEN ifb.score IS NULL AND i.id IS NOT NULL THEN 1 ELSE 0 END) AS pending_reviews,
 		 COALESCE(AVG(ifb.score), 0) AS average_score
 		 FROM users u
-		 LEFT JOIN interviews i ON i.interviewer_id = u.id
+		 JOIN interviews i ON i.interviewer_id = u.id
 		 LEFT JOIN interview_feedback ifb ON ifb.interview_id = i.id
-		 GROUP BY u.id ORDER BY COUNT(i.id) DESC`,
+		 GROUP BY u.id ORDER BY COUNT(DISTINCT i.id) DESC`,
 	)
 	if err != nil {
 		return nil, err
@@ -116,15 +118,16 @@ func (r *InterviewRepository) GetInterviewerActivity() ([]recmodel.InterviewerAc
 func (r *InterviewRepository) GetHiringDecisions() ([]recmodel.HiringDecision, error) {
 	var decisions []recmodel.HiringDecision
 	err := database.DB.Select(&decisions,
-		`SELECT c.id AS candidate_id, c.full_name AS candidate_name, p.name AS position_name, d.name AS department_name,
+		`SELECT c.id AS candidate_id, c.full_name AS candidate_name, COALESCE(p.name, '') AS position_name, COALESCE(d.name, '') AS department_name,
 		 COALESCE(AVG(ifb.score), 0) AS average_score,
 		 COUNT(DISTINCT i.id) AS interview_count,
 		 c.status AS decision,
 		 COALESCE(c.updated_at, '') AS decision_date,
-		 COALESCE((SELECT u.name FROM users u WHERE u.id = c.id), 'System') AS decided_by
+		 COALESCE((SELECT u.name FROM users u ORDER BY u.id LIMIT 1), 'System') AS decided_by
 		 FROM candidates c
-		 JOIN positions p ON p.id = c.position_id
-		 JOIN departments d ON d.id = p.department_id
+		 LEFT JOIN job_postings jp ON jp.id = c.job_posting_id
+		 LEFT JOIN positions p ON p.id = jp.position_id
+		 LEFT JOIN departments d ON d.id = p.department_id
 		 LEFT JOIN interviews i ON i.candidate_id = c.id
 		 LEFT JOIN interview_feedback ifb ON ifb.interview_id = i.id
 		 GROUP BY c.id ORDER BY AVG(ifb.score) DESC`,

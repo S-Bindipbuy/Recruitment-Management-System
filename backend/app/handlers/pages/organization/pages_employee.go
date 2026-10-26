@@ -44,21 +44,27 @@ func (h *OrganizationHandler) Employees(c *fiber.Ctx) error {
 
 	userIDs := make([]int64, 0, len(employees))
 	for _, e := range employees {
-		userIDs = append(userIDs, e.UserID)
+		if e.UserID != nil {
+			userIDs = append(userIDs, *e.UserID)
+		}
 	}
 	names := core.UserNames(userIDs)
 
 	for _, e := range employees {
+		userName := ""
+		if e.UserID != nil {
+			userName = core.DisplayName(names, *e.UserID)
+		}
 		item := EmployeeListItem{
 			Employee:       e,
-			UserName:       core.DisplayName(names, e.UserID),
+			UserName:       userName,
 			DepartmentName: deptNames[e.DepartmentID],
 			PositionName:   posNames[e.PositionID],
 		}
-		if item.DepartmentName == "" {
+		if item.DepartmentName == "" && e.DepartmentID > 0 {
 			item.DepartmentName = "Department #" + strconv.FormatInt(e.DepartmentID, 10)
 		}
-		if item.PositionName == "" {
+		if item.PositionName == "" && e.PositionID > 0 {
 			item.PositionName = "Position #" + strconv.FormatInt(e.PositionID, 10)
 		}
 		data.Employees = append(data.Employees, item)
@@ -73,18 +79,22 @@ func (h *OrganizationHandler) CreateEmployee(c *fiber.Ctx) error {
 	deptID := core.FormInt64(c, "department_id")
 	posID := core.FormInt64(c, "position_id")
 
-	if userID <= 0 || code == "" || deptID <= 0 || posID <= 0 {
+	if code == "" || deptID <= 0 || posID <= 0 {
 		return core.RenderError(c, fiber.StatusBadRequest, "Please fill in all required fields.")
 	}
-	user, err := usersvc.UserServiceInstance.FindByID(userID)
-	if err != nil {
-		return core.RenderError(c, fiber.StatusBadRequest, "The selected user was not found.")
-	}
-	if user.Status != string(enums.UserStatusActive) {
-		return core.RenderError(c, fiber.StatusBadRequest, "The selected user is not active.")
-	}
-	if _, err := orgsvc.EmployeeServiceInstance.FindByUserID(userID); err == nil {
-		return core.RenderError(c, fiber.StatusBadRequest, "This user already has a worker record.")
+	var uidPtr *int64
+	if userID > 0 {
+		user, err := usersvc.UserServiceInstance.FindByID(userID)
+		if err != nil {
+			return core.RenderError(c, fiber.StatusBadRequest, "The selected user was not found.")
+		}
+		if user.Status != string(enums.UserStatusActive) {
+			return core.RenderError(c, fiber.StatusBadRequest, "The selected user is not active.")
+		}
+		if _, err := orgsvc.EmployeeServiceInstance.FindByUserID(userID); err == nil {
+			return core.RenderError(c, fiber.StatusBadRequest, "This user already has a worker record.")
+		}
+		uidPtr = &userID
 	}
 	if !core.ActiveRecordExists("departments", deptID) {
 		return core.RenderError(c, fiber.StatusBadRequest, "The selected department was not found.")
@@ -95,7 +105,7 @@ func (h *OrganizationHandler) CreateEmployee(c *fiber.Ctx) error {
 
 	hireDate := core.DateFromForm(c.FormValue("hire_date"))
 
-	if _, err := orgsvc.EmployeeServiceInstance.Create(userID, code, deptID, posID, nil, hireDate); err != nil {
+	if _, err := orgsvc.EmployeeServiceInstance.Create(uidPtr, code, deptID, posID, nil, hireDate); err != nil {
 		return core.RenderError(c, fiber.StatusInternalServerError, "Failed to create employee.")
 	}
 

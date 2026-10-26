@@ -14,7 +14,6 @@ import (
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
-	"golang.org/x/crypto/bcrypt"
 )
 
 type CandidateHandler struct{}
@@ -148,21 +147,18 @@ func (h *CandidateHandler) AssignCandidateEvaluation(c *fiber.Ctx) error {
 func hireErrorMessage(err error) string {
 	msg := err.Error()
 	switch {
-	case strings.Contains(strings.ToLower(msg), "already exists"):
-		return "No worker was created: a user with this email already exists. Use a different email address for the candidate."
 	case strings.Contains(strings.ToLower(msg), "already been accepted"):
 		return "This candidate has already been accepted, so there is nothing left to create."
 	case strings.Contains(strings.ToLower(msg), "not found"):
 		return "That candidate no longer exists."
 	default:
-		return "No worker was created: " + msg
+		return "Could not create employee: " + msg
 	}
 }
 
 func (h *CandidateHandler) HireCandidate(c *fiber.Ctx) error {
 	candidateID, _ := strconv.ParseInt(c.Params("id"), 10, 64)
 	rating, ratingErr := strconv.ParseFloat(c.FormValue("rating"), 64)
-	temporaryPassword := c.FormValue("temporary_password")
 
 	fail := func(msg string) error {
 		core.TriggerToast(c, msg, "error")
@@ -174,9 +170,6 @@ func (h *CandidateHandler) HireCandidate(c *fiber.Ctx) error {
 	}
 	if ratingErr != nil || rating < 1 || rating > 5 {
 		return fail("The interview rating has to be a number between 1 and 5.")
-	}
-	if len(temporaryPassword) < 8 {
-		return fail("The temporary password needs at least 8 characters.")
 	}
 
 	uid := core.CurrentUserID(c)
@@ -199,24 +192,18 @@ func (h *CandidateHandler) HireCandidate(c *fiber.Ctx) error {
 		return fail("This candidate needs a completed evaluation before they can be accepted.")
 	}
 
-	passwordHash, err := bcrypt.GenerateFromPassword([]byte(temporaryPassword), bcrypt.DefaultCost)
-	if err != nil {
-		log.Printf("[Hire] bcrypt error: %v", err)
-		return fail("That password could not be prepared. Try a different one.")
-	}
-
 	name := ""
 	if cand, cerr := candsvc.CandidateServiceInstance.FindByID(candidateID); cerr == nil {
 		name = cand.FullName
 	}
-	if err := candsvc.CandidateServiceInstance.Hire(candidateID, uid, 0, rating, c.FormValue("notes"), string(passwordHash)); err != nil {
+	if err := candsvc.CandidateServiceInstance.Hire(candidateID, uid, 0, rating, c.FormValue("notes"), ""); err != nil {
 		log.Printf("[Hire] error hiring candidate %d: %v", candidateID, err)
 		return fail(hireErrorMessage(err))
 	}
 
-	notice := "Worker account created."
+	notice := "Employee created."
 	if name != "" {
-		notice = name + " is now an active worker — they appear on the Employees page."
+		notice = name + " is now an employee — they appear on the Employees page."
 	}
 	core.TriggerToast(c, notice, "success")
 	return h.candidatesPage(c, "", notice)

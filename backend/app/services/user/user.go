@@ -47,6 +47,10 @@ func (s *UserService) Update(id int64, name, email, status string) (*usermodel.U
 	return user, nil
 }
 
+func (s *UserService) UpdatePassword(id int64, hashedPassword string) error {
+	return userrepo.UserRepo.UpdatePassword(id, hashedPassword)
+}
+
 func (s *UserService) Delete(id int64) error {
 	return userrepo.UserRepo.Delete(id)
 }

@@ -223,7 +223,9 @@ function sendForm(form) {
             }
         }))
         .catch(err => {
-            if (err.message !== 'Unauthorized') showToast('Request failed. Please try again.', 'error');
+            if (err.message !== 'Unauthorized' && typeof showToast === 'function') {
+                showToast('Network error: request failed. Please try again.', 'error');
+            }
         });
 }
 
@@ -262,7 +264,9 @@ function sendRequest(el) {
     emsFetch(fetchUrl, init)
         .then(res => handleResponse(res, { target, swap: el.dataset.swap }))
         .catch(err => {
-            if (err.message !== 'Unauthorized') showToast('Request failed. Please try again.', 'error');
+            if (err.message !== 'Unauthorized' && typeof showToast === 'function') {
+                showToast('Network error: request failed. Please try again.', 'error');
+            }
         });
 }
 
@@ -280,6 +284,9 @@ function loadPage(pathWithQuery, options = {}) {
         .then(res => handleResponse(res, { target, swap: options.swap }))
         .catch(err => {
             if (err.message !== 'Unauthorized') {
+                if (typeof showToast === 'function') {
+                    showToast('Network error: failed to load page. Please check your connection.', 'error');
+                }
                 if (target) {
                     target.innerHTML = '<div class="badge badge-danger" style="padding:1rem;display:block;width:100%;">Failed to load this page.</div>';
                 }
@@ -358,6 +365,8 @@ function emsRequest(method, url, target, body) {
     emsFetch(url, opts)
         .then(res => handleResponse(res, { target: targetEl || document.getElementById('page') }))
         .catch(err => {
-            if (err.message !== 'Unauthorized') showToast('Request failed. Please try again.', 'error');
+            if (err.message !== 'Unauthorized' && typeof showToast === 'function') {
+                showToast('Network error: request failed. Please try again.', 'error');
+            }
         });
 }

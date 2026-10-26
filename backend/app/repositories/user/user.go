@@ -64,6 +64,11 @@ func (r *UserRepository) Update(user *usermodel.User) error {
 	return err
 }
 
+func (r *UserRepository) UpdatePassword(id int64, hashedPassword string) error {
+	_, err := database.DB.Exec("UPDATE users SET password = ?, updated_at = ? WHERE id = ?", hashedPassword, time.Now(), id)
+	return err
+}
+
 func (r *UserRepository) Delete(id int64) error {
 	_, err := database.DB.Exec("DELETE FROM users WHERE id = ?", id)
 	return err
@@ -213,7 +218,7 @@ func (r *UserRepository) FindActiveNonEmployees() ([]usermodel.UserOption, error
 	err := database.DB.Select(&users, `
 		SELECT id, name FROM users
 		WHERE status = 'active'
-		  AND NOT EXISTS (SELECT 1 FROM employees e WHERE e.user_id = users.id)
+		  AND NOT EXISTS (SELECT 1 FROM employees e WHERE e.user_id = users.id AND e.user_id IS NOT NULL)
 		ORDER BY name`)
 	if err != nil {
 		return nil, err

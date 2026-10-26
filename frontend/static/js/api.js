@@ -60,5 +60,8 @@ async function loadComponent(targetId, componentName) {
         }
     } catch (err) {
         console.error(`Error loading component ${componentName}:`, err);
+        if (typeof showToast === 'function') {
+            showToast('Network error: failed to load UI components.', 'error');
+        }
     }
 }

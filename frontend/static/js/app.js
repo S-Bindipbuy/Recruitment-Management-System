@@ -18,6 +18,10 @@ function showApp() {
 
 function logout() {
     clearAuthToken();
+    const sidebarContainer = document.getElementById('sidebar-container');
+    if (sidebarContainer) sidebarContainer.innerHTML = '';
+    const headerContainer = document.getElementById('header-container');
+    if (headerContainer) headerContainer.innerHTML = '';
     history.replaceState({}, '', '/');
     showAuth();
 }
@@ -75,16 +79,15 @@ async function initApp() {
     // Import separated components via API
     await Promise.all([
         loadComponent('auth-container', 'auth'),
-        loadComponent('sidebar-container', 'sidebar'),
         loadComponent('header-container', 'header')
     ]);
 
-    initScrollIndicator();
-
     const me = await fetchMe();
-    applyPermissionGate(me);
 
     if (getAuthToken()) {
+        await loadComponent('sidebar-container', 'sidebar');
+        initScrollIndicator();
+        applyPermissionGate(me);
         showApp();
         loadPage(currentPageTarget() || 'dashboard');
     } else {
@@ -110,15 +113,15 @@ async function fetchMe() {
 // data-permission may list several comma-separated permissions; the entry is
 // kept when the user holds at least one of them, matching the server's CanAny.
 function applyPermissionGate(me) {
-    if (!me || !Array.isArray(me.permissions)) return;
-    const perms = new Set(me.permissions);
+    if (!me) return;
+    const perms = new Set(Array.isArray(me.permissions) ? me.permissions : []);
     const isAdmin = !!me.is_admin;
     document.querySelectorAll('.nav-link[data-permission]').forEach(el => {
-        if (el.dataset.admin === 'true' && !isAdmin) {
-            el.remove();
+        if (isAdmin) {
             return;
         }
         const wanted = el.dataset.permission.split(',').map(p => p.trim()).filter(Boolean);
+        if (wanted.length === 0) return;
         if (!wanted.some(p => perms.has(p))) {
             el.remove();
         }

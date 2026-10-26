@@ -22,10 +22,14 @@ func (r *EmployeeRepository) Create(emp *orgmodel.Employee) error {
 	if emp.PositionID > 0 {
 		position = emp.PositionID
 	}
+	var department any
+	if emp.DepartmentID > 0 {
+		department = emp.DepartmentID
+	}
 	result, err := database.DB.Exec(
 		`INSERT INTO employees (user_id, employee_code, department_id, position_id, manager_id, hire_date, status) 
 		 VALUES (?, ?, ?, ?, ?, ?, ?)`,
-		emp.UserID, emp.EmployeeCode, emp.DepartmentID, position, emp.ManagerID, emp.HireDate, emp.Status,
+		emp.UserID, emp.EmployeeCode, department, position, emp.ManagerID, emp.HireDate, emp.Status,
 	)
 	if err != nil {
 		return err
@@ -93,7 +97,7 @@ func (r *EmployeeRepository) FindActiveWorkers() ([]usermodel.WorkerOption, erro
 	err := database.DB.Select(&workers, `
 		SELECT e.user_id, u.name, e.employee_code
 		FROM employees e JOIN users u ON u.id = e.user_id
-		WHERE e.status = 'active' AND u.status = 'active'
+		WHERE e.status = 'active' AND u.status = 'active' AND e.user_id IS NOT NULL
 		ORDER BY u.name`)
 	if err != nil {
 		return nil, err
@@ -112,6 +116,6 @@ func (r *EmployeeRepository) IsActiveWorker(userID int64) (bool, error) {
 	err := database.DB.Get(&ok, `
 		SELECT EXISTS(
 			SELECT 1 FROM employees e JOIN users u ON u.id = e.user_id
-			WHERE e.user_id = ? AND e.status = 'active' AND u.status = 'active')`, userID)
+			WHERE e.user_id = ? AND e.user_id IS NOT NULL AND e.status = 'active' AND u.status = 'active')`, userID)
 	return ok, err
 }

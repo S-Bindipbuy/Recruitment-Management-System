@@ -1,17 +1,21 @@
 package user
 
 import (
+	"ems/app/enums"
 	core "ems/app/handlers/pages/core"
 	usermodel "ems/app/models/user"
 	usersvc "ems/app/services/user"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
+	"golang.org/x/crypto/bcrypt"
 )
 
 func (h *UserHandler) Users(c *fiber.Ctx) error {
-	if err := core.RequireAdmin(c); err != nil {
-		return err
+	if err := core.RequirePermission(c, enums.PermissionUserManage); err != nil {
+		if err := core.RequireAdmin(c); err != nil {
+			return err
+		}
 	}
 
 	users, _ := usersvc.UserServiceInstance.FindAll()
@@ -42,8 +46,10 @@ func (h *UserHandler) Users(c *fiber.Ctx) error {
 }
 
 func (h *UserHandler) CreateUser(c *fiber.Ctx) error {
-	if err := core.RequireAdmin(c); err != nil {
-		return err
+	if err := core.RequirePermission(c, enums.PermissionUserManage); err != nil {
+		if err := core.RequireAdmin(c); err != nil {
+			return err
+		}
 	}
 
 	name := strings.TrimSpace(c.FormValue("name"))
@@ -54,7 +60,12 @@ func (h *UserHandler) CreateUser(c *fiber.Ctx) error {
 		return core.RenderError(c, fiber.StatusBadRequest, "Name, email, and password are required.")
 	}
 
-	_, err := usersvc.UserServiceInstance.Register(name, email, password)
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return core.RenderError(c, fiber.StatusInternalServerError, "Failed to create user.")
+	}
+
+	_, err = usersvc.UserServiceInstance.Register(name, email, string(hashedPassword))
 	if err != nil {
 		return core.RenderError(c, fiber.StatusInternalServerError, "Failed to create user. Email may already be taken.")
 	}
@@ -74,14 +85,17 @@ func (h *UserHandler) CreateUser(c *fiber.Ctx) error {
 }
 
 func (h *UserHandler) UpdateUser(c *fiber.Ctx) error {
-	if err := core.RequireAdmin(c); err != nil {
-		return err
+	if err := core.RequirePermission(c, enums.PermissionUserManage); err != nil {
+		if err := core.RequireAdmin(c); err != nil {
+			return err
+		}
 	}
 
 	id, _ := c.ParamsInt("id")
 	name := strings.TrimSpace(c.FormValue("name"))
 	email := strings.TrimSpace(c.FormValue("email"))
 	status := c.FormValue("status")
+	password := c.FormValue("password")
 
 	if id <= 0 || name == "" || email == "" {
 		return core.RenderError(c, fiber.StatusBadRequest, "Name and email are required.")
@@ -110,6 +124,19 @@ func (h *UserHandler) UpdateUser(c *fiber.Ctx) error {
 		return core.RenderError(c, fiber.StatusInternalServerError, "Failed to update user.")
 	}
 
+	if strings.TrimSpace(password) != "" {
+		if len(password) < 8 {
+			return core.RenderError(c, fiber.StatusBadRequest, "Password must be at least 8 characters.")
+		}
+		hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+		if err != nil {
+			return core.RenderError(c, fiber.StatusInternalServerError, "Failed to update password.")
+		}
+		if err := usersvc.UserServiceInstance.UpdatePassword(int64(id), string(hashedPassword)); err != nil {
+			return core.RenderError(c, fiber.StatusInternalServerError, "Failed to update password.")
+		}
+	}
+
 	if roleID > 0 {
 		usersvc.UserServiceInstance.AssignRoles(int64(id), []int64{roleID})
 	} else {
@@ -120,8 +147,10 @@ func (h *UserHandler) UpdateUser(c *fiber.Ctx) error {
 }
 
 func (h *UserHandler) DeleteUser(c *fiber.Ctx) error {
-	if err := core.RequireAdmin(c); err != nil {
-		return err
+	if err := core.RequirePermission(c, enums.PermissionUserManage); err != nil {
+		if err := core.RequireAdmin(c); err != nil {
+			return err
+		}
 	}
 
 	id, _ := c.ParamsInt("id")

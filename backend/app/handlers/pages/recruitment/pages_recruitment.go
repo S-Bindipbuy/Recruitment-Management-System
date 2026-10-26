@@ -272,15 +272,7 @@ func (h *RecruitmentHandler) SubmitInterviewFeedback(c *fiber.Ctx) error {
 
 // Reports Page
 func (h *RecruitmentHandler) RecruitmentReports(c *fiber.Ctx) error {
-	summaries, _ := recsvc.InterviewServiceInst.GetAllCandidateSummaries()
-	activities, _ := recsvc.InterviewServiceInst.GetInterviewerActivity()
-	decisions, _ := recsvc.InterviewServiceInst.GetHiringDecisions()
-
-	return core.RenderPage(c, "page-recruitment-reports", struct {
-		Summaries  []recmodel.CandidateEvaluationSummary
-		Activities []recmodel.InterviewerActivity
-		Decisions  []recmodel.HiringDecision
-	}{Summaries: summaries, Activities: activities, Decisions: decisions})
+	return c.Redirect("/pages/reports")
 }
 
 // Suppress unused import
