@@ -15,7 +15,6 @@ func registerEvaluationRoutes(protected fiber.Router) {
 	resp := &evaluation.EvaluationResponseHandler{}
 	result := &evaluation.EvaluationResultHandler{}
 	comment := &evaluation.EvaluationCommentHandler{}
-	approval := &evaluation.EvaluationApprovalHandler{}
 
 	protected.Get("/evaluation-periods", period.List)
 	protected.Get("/evaluation-periods/:id", period.Get)
@@ -54,8 +53,4 @@ func registerEvaluationRoutes(protected fiber.Router) {
 	protected.Post("/evaluation-comments", comment.Create)
 	protected.Get("/evaluation-assignments/:assignment_id/comments", comment.List)
 
-	protected.Get("/evaluation-approvals/pending", approval.ListPending)
-	protected.Post("/evaluation-approvals", approval.Create)
-	protected.Post("/evaluation-approvals/:id/approve", approval.Approve)
-	protected.Post("/evaluation-approvals/:id/reject", approval.Reject)
 }

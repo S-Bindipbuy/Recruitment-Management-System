@@ -5,6 +5,5 @@ package models
 type DashboardStats struct {
 	TotalEmployees   int `json:"total_employees" db:"total_employees"`
 	TotalAssignments int `json:"total_assignments" db:"total_assignments"`
-	PendingApprovals int `json:"pending_approvals" db:"pending_approvals"`
 	CompletedEvals   int `json:"completed_evals" db:"completed_evals"`
 }

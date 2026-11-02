@@ -45,6 +45,50 @@ func (r *EvaluationPeriodRepository) FindByID(id int64) (*evalmodel.EvaluationPe
 	return p, nil
 }
 
+// FindActive returns the active period that contains the given date. Round
+// evaluations are created automatically, without a period picker, so the
+// interview's scheduled date decides which period they belong to.
+func (r *EvaluationPeriodRepository) FindActive(on time.Time) (*evalmodel.EvaluationPeriod, error) {
+	p := &evalmodel.EvaluationPeriod{}
+	date := on.Format("2006-01-02")
+	err := database.DB.Get(p,
+		`SELECT id, COALESCE(name, '') AS name, COALESCE(description, '') AS description,
+		        COALESCE(start_date, '') AS start_date, COALESCE(end_date, '') AS end_date,
+		        status, created_by, created_at, updated_at
+		 FROM evaluation_periods
+		 WHERE LOWER(status) = 'active'
+		   AND (start_date IS NULL OR start_date = '' OR start_date <= ?)
+		   AND (end_date IS NULL OR end_date = '' OR end_date >= ?)
+		 ORDER BY start_date DESC, id DESC
+		 LIMIT 1`,
+		date, date,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return p, nil
+}
+
+// FindLatestActive is the fallback when no active period covers the interview
+// date: the newest active period is still a better home for the assignment
+// than dropping it.
+func (r *EvaluationPeriodRepository) FindLatestActive() (*evalmodel.EvaluationPeriod, error) {
+	p := &evalmodel.EvaluationPeriod{}
+	err := database.DB.Get(p,
+		`SELECT id, COALESCE(name, '') AS name, COALESCE(description, '') AS description,
+		        COALESCE(start_date, '') AS start_date, COALESCE(end_date, '') AS end_date,
+		        status, created_by, created_at, updated_at
+		 FROM evaluation_periods
+		 WHERE LOWER(status) = 'active'
+		 ORDER BY id DESC
+		 LIMIT 1`,
+	)
+	if err != nil {
+		return nil, err
+	}
+	return p, nil
+}
+
 func (r *EvaluationPeriodRepository) Update(period *evalmodel.EvaluationPeriod) error {
 	_, err := database.DB.Exec(
 		`UPDATE evaluation_periods SET name = ?, description = ?, start_date = ?, end_date = ?, 

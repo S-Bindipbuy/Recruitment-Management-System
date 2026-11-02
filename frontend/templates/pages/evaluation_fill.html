@@ -2,11 +2,20 @@
 <div class="space-y-6" id="evaluation-fill-page">
     <div class="page-header">
         <div class="page-header-left">
-            <h3 class="page-title">Evaluation #{{.Assignment.ID}}</h3>
-            <p class="page-subtitle">Evaluatee: {{.EvaluateeName}} · Status: {{.Assignment.Status}}</p>
+            <h3 class="page-title">{{if .RoundName}}Round Evaluation #{{.Assignment.ID}}{{else}}Evaluation #{{.Assignment.ID}}{{end}}</h3>
+            <p class="page-subtitle">Evaluatee: {{.EvaluateeName}}{{if .RoundName}} · Round: {{.RoundName}}{{end}} · Status: {{.Assignment.Status}}</p>
         </div>
         <a href="/pages/evaluations" class="btn btn-ghost">Back to Evaluations</a>
     </div>
+
+    {{if .InterviewScoreAvailable}}
+    <div class="card-section" style="padding: 1rem 1.25rem;">
+        <p class="text-sm text-muted">Combined interviewer score</p>
+        <p class="text-xl font-semibold" style="color: var(--rose-pine);">{{printf "%.2f" .InterviewScore}} / 10</p>
+        <p class="text-xs text-muted">{{.CompletedReviews}} of {{.TotalInterviews}} interviews scored</p>
+        <p class="text-xs text-muted">Total interviewer score: {{printf "%.2f" .InterviewScoreTotal}}</p>
+    </div>
+    {{end}}
 
     {{if .Result}}
     <div class="eval-result-card">
@@ -18,10 +27,9 @@
         </div>
     </div>
 
-    {{else if eq .Assignment.Status "pending"}}
+    {{else if not .InterviewReady}}
     <div class="card-section" style="padding: 2rem; text-align: center;">
-        <p class="text-muted mb-4">This evaluation has not been started yet.</p>
-        <button class="btn btn-foam cursor-pointer" style="padding: 0.625rem 1.5rem;" type="button" data-url="/pages/evaluation-fill/{{.Assignment.ID}}/start" data-request="POST">Start Evaluation</button>
+        <p class="text-sm text-muted">Complete all interview rounds for this candidate before evaluating.</p>
     </div>
 
     {{else}}
@@ -44,20 +52,20 @@
                     {{if $q.Description}}<p class="eval-question-desc">{{$q.Description}}</p>{{else}}<div class="mb-2"></div>{{end}}
 
                     {{if eq $q.QuestionType "text"}}
-                    <textarea name="q_{{$q.ID}}" id="q-{{$q.ID}}" {{if .Required}}required{{end}} class="eval-textarea"></textarea>
+                    <textarea name="q_{{$q.ID}}" id="q-{{$q.ID}}" {{if .Required}}required{{end}} class="eval-textarea">{{.TextValue}}</textarea>
 
                     {{else if eq $q.QuestionType "number"}}
-                    <input type="number" step="any" name="q_{{$q.ID}}" id="q-{{$q.ID}}" {{if .Required}}required{{end}} class="eval-input">
+                    <input type="number" step="any" name="q_{{$q.ID}}" id="q-{{$q.ID}}" value="{{.NumericValue}}" {{if .Required}}required{{end}} class="eval-input">
 
                     {{else if eq $q.QuestionType "boolean"}}
                     <select name="q_{{$q.ID}}" id="q-{{$q.ID}}" {{if .Required}}required{{end}} class="eval-input">
                         <option value="">-- Select --</option>
-                        <option value="true">Yes</option>
-                        <option value="false">No</option>
+                        <option value="true"{{if eq .BooleanValue "true"}} selected{{end}}>Yes</option>
+                        <option value="false"{{if eq .BooleanValue "false"}} selected{{end}}>No</option>
                     </select>
 
                     {{else}}
-                    <input type="number" step="0.5" min="0" max="10" name="q_{{$q.ID}}" id="q-{{$q.ID}}" {{if .Required}}required{{end}} placeholder="Rating 0 - 10" class="eval-input">
+                    <input type="number" step="0.5" min="0" max="10" name="q_{{$q.ID}}" id="q-{{$q.ID}}" value="{{.RatingValue}}" {{if .Required}}required{{end}} placeholder="Rating 0 - 10" class="eval-input">
                     {{end}}
                 </div>
                 {{end}}

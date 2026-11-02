@@ -25,6 +25,10 @@ INSERT OR IGNORE INTO permissions (name, description) VALUES
     ('employee.manage', 'Manage employees'),
     ('organization.manage', 'Manage organizations, departments and positions'),
     ('recruitment.manage', 'Manage recruitment (job postings, interviews, candidates)'),
+    ('interview.view', 'View interview schedules (own assignments unless combined with a wider interview permission)'),
+    ('interview.assign', 'Schedule interviews and assign interviewer panels'),
+    ('interview.score', 'Score interviews as an assigned interviewer'),
+    ('interview.approve', 'Review all interview schedules and the final candidate ranking'),
     ('evaluation.manage', 'Manage evaluation periods, templates, sections and questions'),
     ('evaluation.assign', 'Assign workers to evaluations'),
     ('evaluation.evaluate', 'Start, fill and submit assigned evaluations'),
@@ -37,7 +41,8 @@ INSERT OR IGNORE INTO roles (name, description) VALUES
     ('admin', 'Full system access'),
     ('hrm', 'HR management: employees, evaluations, reports'),
     ('manager', 'Manages workers and evaluates reports to them'),
-    ('employee', 'Fills in the evaluations assigned to them');
+    ('employee', 'Fills in the evaluations assigned to them'),
+    ('interviewer', 'Scores the interviews they are assigned to');
 
 -- ------------------------------------------------------------
 -- Role permissions
@@ -62,6 +67,10 @@ WHERE r.name = 'hrm'
     'employee.manage',
     'organization.manage',
     'recruitment.manage',
+    'interview.view',
+    'interview.assign',
+    'interview.score',
+    'interview.approve',
     'evaluation.manage',
     'evaluation.assign',
     'evaluation.evaluate',
@@ -78,6 +87,10 @@ WHERE r.name = 'manager'
   AND p.name IN (
     'dashboard.view',
     'report.view',
+    'interview.view',
+    'interview.assign',
+    'interview.score',
+    'interview.approve',
     'evaluation.assign',
     'evaluation.evaluate',
     'evaluation.approve'
@@ -91,7 +104,21 @@ JOIN permissions p
 WHERE r.name = 'employee'
   AND p.name IN (
     'dashboard.view',
+    'interview.view',
+    'interview.score',
     'evaluation.evaluate'
+  );
+
+-- interviewer
+INSERT OR IGNORE INTO role_permissions (role_id, permission_id)
+SELECT r.id, p.id
+FROM roles r
+JOIN permissions p
+WHERE r.name = 'interviewer'
+  AND p.name IN (
+    'dashboard.view',
+    'interview.view',
+    'interview.score'
   );
 
 -- ------------------------------------------------------------

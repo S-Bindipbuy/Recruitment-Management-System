@@ -11,6 +11,10 @@ const (
 	PermissionEmployeeManage     Permission = "employee.manage"
 	PermissionOrganizationManage Permission = "organization.manage"
 	PermissionRecruitmentManage  Permission = "recruitment.manage"
+	PermissionInterviewView      Permission = "interview.view"
+	PermissionInterviewAssign    Permission = "interview.assign"
+	PermissionInterviewScore     Permission = "interview.score"
+	PermissionInterviewApprove   Permission = "interview.approve"
 	PermissionEvaluationManage   Permission = "evaluation.manage"
 	PermissionEvaluationAssign   Permission = "evaluation.assign"
 	PermissionEvaluationEvaluate Permission = "evaluation.evaluate"
@@ -32,10 +36,14 @@ var PermissionCatalog = []PermissionInfo{
 	{PermissionEmployeeManage, "Manage employees"},
 	{PermissionOrganizationManage, "Manage organizations, departments and positions"},
 	{PermissionRecruitmentManage, "Manage recruitment (job postings, interviews, candidates)"},
+	{PermissionInterviewView, "View interview schedules (own assignments unless combined with a wider interview permission)"},
+	{PermissionInterviewAssign, "Schedule interviews and assign interviewer panels"},
+	{PermissionInterviewScore, "Score interviews as an assigned interviewer"},
+	{PermissionInterviewApprove, "Review all interview schedules and the final candidate ranking"},
 	{PermissionEvaluationManage, "Manage evaluation periods, templates, sections and questions"},
 	{PermissionEvaluationAssign, "Assign workers to evaluations"},
 	{PermissionEvaluationEvaluate, "Start, fill and submit assigned evaluations"},
-	{PermissionEvaluationApprove, "Create and decide evaluation approval requests"},
+	{PermissionEvaluationApprove, "Review interviewer scores and hire candidates"},
 }
 
 func AllPermissionNames() []string {

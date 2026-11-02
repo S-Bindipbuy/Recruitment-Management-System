@@ -75,8 +75,8 @@
             <div class="form-group"><label class="form-label">Position</label><select name="position_id" required class="form-select"><option value="">Select position</option>{{range .Positions}}<option value="{{.ID}}">{{.Name}}</option>{{end}}</select></div>
             <div class="form-group"><label class="form-label">Employment Type</label><select name="employment_type" class="form-select"><option value="full-time">Full-time</option><option value="part-time">Part-time</option><option value="contract">Contract</option><option value="internship">Internship</option></select></div>
             <div class="grid grid-cols-2 gap-4">
-                <div class="form-group"><label class="form-label">Min Salary</label><input type="number" name="salary_min" class="form-input" placeholder="Optional"></div>
-                <div class="form-group"><label class="form-label">Max Salary</label><input type="number" name="salary_max" class="form-input" placeholder="Optional"></div>
+                <div class="form-group"><label class="form-label">Min Salary</label><input type="number" name="salary_min" min="0" step="1" class="form-input" placeholder="Optional"></div>
+                <div class="form-group"><label class="form-label">Max Salary</label><input type="number" name="salary_max" min="0" step="1" class="form-input" placeholder="Optional"></div>
             </div>
             <div class="form-group"><label class="form-label">Required Skills</label><input name="skills_required" class="form-input" placeholder="e.g. Go, JavaScript, Python"></div>
             <div class="form-group"><label class="form-label">Description</label><textarea name="description" rows="3" class="form-input"></textarea></div>

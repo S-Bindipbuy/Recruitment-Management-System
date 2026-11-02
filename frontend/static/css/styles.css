@@ -762,6 +762,12 @@ dialog::backdrop {
     box-shadow: 0 1px 3px 0 rgba(87, 82, 121, 0.05);
 }
 .card-padded { padding: 1.25rem; }
+.card-header {
+    padding: 0.875rem 1.25rem;
+    border-bottom: 1px solid var(--rose-border);
+}
+.card-body { padding: 1.25rem; }
+.card-title { font-weight: 700; color: var(--rose-text); }
 .card-section {
     background: var(--rose-surface);
     border: 1px solid var(--rose-border);
@@ -780,20 +786,43 @@ dialog::backdrop {
     background: var(--rose-surface);
     border-radius: 0.5rem;
     box-shadow: 0 1px 2px 0 rgba(87, 82, 121, 0.04);
-    overflow: hidden;
+    overflow-x: auto;
+    overflow-y: hidden;
 }
 .table-container-bordered {
     background: var(--rose-surface);
     border-radius: 0.75rem;
     border: 1px solid var(--rose-border);
     box-shadow: 0 1px 2px 0 rgba(87, 82, 121, 0.04);
-    overflow: hidden;
+    overflow-x: auto;
+    overflow-y: hidden;
+}
+
+/* Horizontal scroll wrapper for wide tables on narrow screens. The min-width
+   keeps columns readable instead of squeezing every cell onto one line. */
+.table-responsive {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+}
+.table-responsive > table {
+    width: 100%;
+    min-width: 44rem;
+}
+/* Wide tables (candidate lists, schedules) need more room before columns start
+   squeezing into unreadable wrapped cells. */
+.table-responsive.table-wide > table {
+    min-width: 64rem;
 }
 .table-head { background: var(--rose-overlay); }
 .table-head th { font-weight: 700; }
 .table-cell-bold { font-weight: 600; color: var(--rose-text); }
 .table-cell-muted { color: var(--rose-subtle); }
 .table-cell-dim { color: var(--rose-muted); }
+.table-row-link { cursor: pointer; }
 
 /* ── Badges ── */
 .badge {
@@ -1271,6 +1300,9 @@ dialog::backdrop {
 .wizard-option-warn { font-size: 0.8125rem; color: var(--rose-rose); margin-top: 0.25rem; }
 .wizard-option-disabled { opacity: 0.6; cursor: not-allowed; }
 .wizard-option-disabled:hover { border-color: var(--rose-border); background: var(--rose-surface); }
+/* The step-3 candidate picker is split under one heading per job posting. */
+.cycle-candidate-group { display: flex; flex-direction: column; gap: 0.5rem; }
+.cycle-group-candidates { padding-left: 0.75rem; }
 
 .wizard-summary {
     display: flex;

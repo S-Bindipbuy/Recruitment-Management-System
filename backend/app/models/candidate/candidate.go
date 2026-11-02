@@ -21,4 +21,5 @@ type Candidate struct {
 type CandidateListItem struct {
 	Candidate
 	PostingTitle string `json:"posting_title" db:"posting_title"`
+	StatusReason string `json:"status_reason" db:"status_reason"`
 }

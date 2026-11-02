@@ -165,6 +165,9 @@ ROLES (/pages/roles)  [admins only]
     and tick the individual raw permissions instead.
   - The `admin` role name is special: it is the only role that can
     manage users, roles and permissions.
+  - Built-in roles: admin, hrm, manager, employee, interviewer.
+    The `interviewer` role can view and score only the interviews
+    they are assigned to; it cannot schedule or approve them.
 
   You can see how many users have each role in the Users column.
 
@@ -215,36 +218,71 @@ Step-by-step hiring process:
   C. CREATE INTERVIEW ROUNDS (one-time setup)
   ───────────────────────────────────────────
   Interviews belong to a round (HR screen, Technical, Final...)
-  of a job posting. Rounds are configured through the API -
-  there is no screen for them yet:
+  of a job posting.
 
-    POST /api/interview-rounds
-    { "job_posting_id": 1, "name": "Technical", "round_number": 1,
-      "round_type": "technical", "max_score": 10, "pass_score": 6 }
+  1. Go to Recruitment > Interviews
+  2. Click "Add Round"
+  3. Fill in:
+     - Job Posting: which posting this round belongs to
+     - Round name: e.g. Technical Interview
+     - Order: 1 for the first round, 2 for the next
+     - Round type: Screening, Technical, Behavioral, Manager, Final
+     - Evaluation template: optional question bank for this round
+     - Sections for this round: the template parts this round asks
+     - Max score / Pass score / Weight
+  4. Click "Add round"
 
-  Once a round exists it shows up in the round dropdown on the
-  Interviews page.
+  Templates can be large, so split one template across rounds by
+  picking different sections in each round. The feedback form for a
+  round shows only the questions from that round's sections.
+
+  The round appears in the Interview Rounds table and in the
+  round dropdown when scheduling an interview.
 
   D. SCHEDULE INTERVIEWS
   ──────────────────────
   1. Go to Recruitment > Interviews
   2. Click "Schedule Interview"
   3. Fill in:
-     - Candidate: pick from dropdown
-     - Interview Round: pick the round (from section C)
-     - Interviewer: pick a worker/employee
+     - Candidate group: pick the candidate's job posting first
+     - Candidates: tick one or more candidates from that group. The
+       "Select all in this group" box books every candidate in one
+       submit. Changing the group clears ticks from the old group so
+       the round always matches.
+     - Interview Round: only rounds for that group's posting
+     - Interview panel: pick a department/group first, then tick
+       one or more workers/employees from that group
      - Date & Time: select when
      - Duration: how long (default 60 min)
      - Location: room name OR meeting link
      - Notes: any additional info
   4. Save
 
+  Access is role-based:
+  - interview.view      sees only interviews they sit on, plus any
+                        candidate assigned to them for evaluation.
+  - interview.score     can score their own panel feedback.
+  - interview.assign    can schedule/edit/delete and sees every
+                        schedule.
+  - interview.approve   sees every schedule and the candidate ranking.
+  - evaluation.assign   gets a read-only view of every schedule.
+  - evaluation.evaluate can schedule interviews only for the
+                        candidates assigned to that user.
+  Managers/administrators keep full access.
+
   E. COLLECT INTERVIEW FEEDBACK
   ─────────────────────────────
-  1. After the interview, go to Interviews page
-  2. Click "Feedback" on the scheduled interview
+  Each panel member logs in and scores the candidate independently.
+  Nobody has to overwrite anyone else's score.
+
+  1. Go to Recruitment > Interviews
+  2. Click "Feedback" on the scheduled interview (or open it from the
+     dashboard's waiting-scores list)
   3. Fill in:
-     - Score: 0-10
+     - Round Questions: answer each question from the sections assigned
+       to the round and give it a score from 0-10. The weighted average
+       of these scores becomes that interviewer's overall score.
+       (A round with no questions falls back to one overall score field.)
      - Recommendation: Strong Hire / Hire / Maybe / No Hire /
        Strong No Hire
      - Strengths: what went well
@@ -252,25 +290,46 @@ Step-by-step hiring process:
      - Comments: additional notes
   4. Submit
 
+  A manager or approver opening the feedback page sees the whole panel
+  scoreboard: every interviewer's score, the recommendation, who typed
+  it, and the combined average. Use the interviewer selector to enter or
+  correct a specific panel member's score. The Candidate Ranking table is
+  available on the Interviews page, the Reports page, and as a Top
+  Candidates shortlist on the Dashboard. The Approvals page also carries
+  the full Candidate Ranking table, and its pending/ready rows show each
+  candidate's rank and combined score, so the approver sees the same
+  position the Interviews page gives them. Use the job posting filter at
+  the top of the page to narrow the ranking and both approval tables to a
+  single posting. Click a candidate's name in any ranking or candidate
+  list to open the feedback recorded on their most recent scored
+  interview. All of them use the same
+  ranking: inside each job posting, only candidates with at least one
+  score, sorted by the combined interviewer score. Candidates who have
+  already been hired leave the ranking: it is the shortlist still
+  waiting for a decision. A candidate is ranked after the first score is
+  submitted. The decision shows in_progress while reviews or rounds are
+  outstanding, but HR can hire without waiting for the remaining scores.
+
   F. EVALUATE THE CANDIDATE (optional but recommended)
   ────────────────────────────────────────────────────
-  1. Go to Recruitment > Candidates
-  2. Click "Assign Evaluation" on the candidate
-  3. Pick a period, template, and evaluator; set a due date
-  4. The evaluator fills the evaluation form (see Section 6)
+  1. (Optional) Finish the interview rounds for the candidate
+  2. Go to Recruitment > Candidates
+  3. Click "Assign Evaluation" when the candidate's interview rounds
+     are complete
+  4. Pick a period, template, and evaluator; set a due date
+  5. The evaluator fills the evaluation form (see Section 6)
 
   G. HIRE THE CANDIDATE
   ─────────────────────
-  1. Go to Recruitment > Candidates
-  2. Click "Accept Worker" (hidden once the candidate is hired)
+  1. Go to Evaluation > Approvals
+  2. In Candidate Ranking, click "Hire" for a candidate with a scored
+     interview
   3. Fill in:
      - Interview rating: 1-5
-     - Temporary password: at least 8 characters
-       (give it to the new worker securely)
      - Assessment notes: optional
-  4. This creates an active user account and employee record,
-     with the position taken from the job posting they
-     applied to
+  4. This creates an active employee record with the
+     position taken from the job posting they applied to.
+     The Candidates listing does not offer the accept action.
 
   H. VIEW RECRUITMENT REPORTS
   ──────────────────────────
@@ -321,7 +380,8 @@ Step-by-step:
   Single assignment - Evaluation > Evaluations > "New Assignment":
      - Period, Template
      - Evaluator: who will do the evaluation
-     - Evaluatee: who is being evaluated
+     - Evaluatee: who is being evaluated (the dropdown groups
+       candidates by the job posting they applied for)
      - Due Date: when it should be done
 
   Bulk (a whole cycle) - Evaluation > Run a Cycle:
@@ -331,10 +391,13 @@ Step-by-step:
       2. Template - pick the template to evaluate with. A
                     template with no questions is refused here,
                     because it would score every evaluation 0%
-      3. Who gets evaluated - pick the evaluator, tick the
-                    candidates, set an optional due date. A live
-                    table shows what "Next" would create and
-                    why a row would be skipped
+      3. Who gets evaluated - pick the evaluator, then tick
+                    candidates grouped by job posting. Each group
+                    has its own tick to select everybody in that
+                    posting, or tick people one by one. Set an
+                    optional due date; a live table shows what
+                    "Next" would create and why a row would be
+                    skipped
       4. Review & launch - confirm, then all assignments are
                     created at once
 
@@ -346,35 +409,18 @@ Step-by-step:
       The wizard remembers your answers, so you can step back
       and change any of them before launching.
 
-  D. FILL THE EVALUATION FORM
-  ───────────────────────────
-  1. Go to Evaluation > Evaluations
-  2. Click "Start" on a pending assignment
-  3. Click "Fill" to open the evaluation form
-  4. Answer each question in each section
-  5. Can add comments in the comments section
-  6. Click "Submit Evaluation"
+  D. TRACK EVALUATION ASSIGNMENTS
+  ───────────────────────────────
+  - Evaluation > Evaluations lists assignments and their current
+    status, evaluator, evaluatee, due date, and result.
+  - Evaluation forms and interview scoring are not launched from
+    this page.
 
-  Who can start an evaluation:
-  - The assigned evaluator (their role needs "Evaluate" access, or
-    Evaluation > Full control), OR
-  - Anyone with Evaluation > "Assign and manage" or "Full control"
-    (so an admin can start/run any evaluation).
-
-  The system automatically calculates a score, percentage,
-  and grade based on the answers.
-
-  E. APPROVAL PROCESS
-  ───────────────────
-  After submission:
-  1. Go to Evaluation > Approvals
-  2. An approval request is automatically created
-     (level 1, for the approver)
-  3. The approver reviews the evaluation
-  4. Clicks "Approve" (completes the assignment) or
-     "Reject" (sends it back for revision with a comment)
-  5. A revised evaluation can be resubmitted, which creates a
-     fresh approval request
+  E. CANDIDATE EVALUATIONS (OPTIONAL)
+  ───────────────────────────────────
+  Candidate-level evaluations are optional and do not control hiring.
+  Hire candidates from Candidate Ranking on Evaluation > Approvals
+  after at least one interviewer has submitted a score.
 
   F. VIEW RESULTS
   ───────────────
@@ -391,7 +437,7 @@ Step-by-step:
 
 EVALUATION REPORTS (/pages/reports)
   - Summary cards: total employees, completed evaluations,
-    pending approvals, total assignments
+    total assignments
   - Department performance chart (bar chart by department)
   - All evaluation results table with scores and grades
 
@@ -447,8 +493,8 @@ screen and carry the answers forward):
                                Who gets evaluated -> Review
   /pages/cycle/period          Choose (or create) the period
   /pages/cycle/template        Choose the template
-  /pages/cycle/scope           Choose the evaluator and
-                               the candidates
+  /pages/cycle/scope           Choose the evaluator and the
+                               candidates (grouped by job posting)
   /pages/cycle/launch          Create the assignments
   /pages/job-wizard            Basics -> Details ->
                                Terms -> Review
@@ -470,7 +516,7 @@ TIPS:
   - Always set up Organization > Department > Position first
   - Create users before making them employees
   - Publish job postings to make them visible to applicants
-  - Create interview rounds (API, section 5C) before scheduling
+  - Create interview rounds (section 5C) before scheduling
     interviews - otherwise the round dropdown is empty
   - Use "Run a Cycle" to assign many evaluations at once
   - Give a template at least one rating question before you

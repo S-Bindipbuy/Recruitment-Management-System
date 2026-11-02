@@ -179,40 +179,42 @@
 
             <div class="form-group">
                 <label class="form-label-sm">
-                    Candidates to evaluate<span id="cycle-selected-count">{{if .SelectedCandidateIDs}} · {{len .SelectedCandidateIDs}} selected{{end}}</span>
+                    Job postings to evaluate<span id="cycle-selected-count">{{if .SelectedPostingIDs}} · {{len .SelectedPostingIDs}} posting{{if ne (len .SelectedPostingIDs) 1}}s{{end}} selected{{end}}</span>
                 </label>
-                {{if .Candidates}}
-                <label class="wizard-choice" style="margin-bottom: 0.5rem;">
-                    <span class="wizard-choice-label" style="margin-bottom: 0;">
-                        <input type="checkbox" id="cycle-select-all" {{if .AllSelected}}checked{{end}} onchange="cycleToggleAllCandidates(this)">
-                        <span>Select all ({{len .Candidates}})</span>
-                    </span>
-                </label>
+                {{if .CandidateGroups}}
                 <div class="wizard-option-list" id="cycle-candidate-list">
-                    {{range .Candidates}}
-                    <div class="wizard-option">
-                        <label class="wizard-option-pick">
-                            <input type="checkbox" class="cycle-candidate" name="candidate_ids" value="{{.ID}}" {{if .Checked}}checked{{end}}
-                                   onchange="cycleSyncScopeSelection()">
-                            <span class="wizard-option-body">
-                                <span class="wizard-option-name">{{.Name}}</span>
-                                <span class="wizard-option-meta">{{if .Email}}{{.Email}} · {{end}}{{.Status}}</span>
-                                {{if .Assigned}}<span class="wizard-option-warn"><i class="fa-solid fa-circle-info"></i> Already has this template assigned in this period{{if not .Droppable}} - it will be skipped{{end}}.</span>{{end}}
+                    {{range .CandidateGroups}}
+                    <div class="cycle-candidate-group">
+                        <label class="wizard-choice" style="padding: 0.75rem 1rem;">
+                            <span class="wizard-choice-label" style="margin-bottom: 0;">
+                                <input type="checkbox" class="cycle-group-toggle" name="posting_ids" value="{{.PostingID}}" {{if .AllSelected}}checked{{end}} onchange="cycleSyncScopeSelection()">
+                                <span>{{.PostingTitle}} <span class="wizard-option-meta">({{len .Candidates}} candidate{{if ne (len .Candidates) 1}}s{{end}})</span></span>
                             </span>
                         </label>
-                        <!-- The row sits inside the scope form, so the drop posts with
-                             everything this step already knows - no second form, which
-                             HTML does not allow. -->
-                        {{range .Droppable}}
-                        <button type="button" class="btn btn-sm btn-ghost cycle-option-drop" data-vals='{"drop_assignment_id": "{{.ID}}"}' data-confirm='{{if eq .Status "started"}}Drop this started evaluation? The answers saved so far go with it.{{else}}Drop this pending evaluation from the period?{{end}}' data-url="/pages/cycle/assignment/drop" data-request="POST">
-                            <i class="fa-solid fa-xmark text-xs"></i> Drop
-                        </button>
-                        {{end}}
+                        <div class="wizard-option-list cycle-group-candidates">
+                            {{range .Candidates}}
+                            <div class="wizard-option">
+                                <span class="wizard-option-body">
+                                    <span class="wizard-option-name">{{.Name}}</span>
+                                    <span class="wizard-option-meta">{{if .Email}}{{.Email}} · {{end}}{{.Status}}</span>
+                                    {{if .Assigned}}<span class="wizard-option-warn"><i class="fa-solid fa-circle-info"></i> Already has this template assigned in this period{{if not .Droppable}} - it will be skipped{{end}}.</span>{{end}}
+                                </span>
+                                <!-- The row sits inside the scope form, so the drop posts with
+                                     everything this step already knows - no second form, which
+                                     HTML does not allow. -->
+                                {{range .Droppable}}
+                                <button type="button" class="btn btn-sm btn-ghost cycle-option-drop" data-vals='{"drop_assignment_id": "{{.ID}}"}' data-confirm='{{if eq .Status "started"}}Drop this started evaluation? The answers saved so far go with it.{{else}}Drop this pending evaluation from the period?{{end}}' data-url="/pages/cycle/assignment/drop" data-request="POST">
+                                    <i class="fa-solid fa-xmark text-xs"></i> Drop
+                                </button>
+                                {{end}}
+                            </div>
+                            {{end}}
+                        </div>
                     </div>
                     {{end}}
                 </div>
                 <p class="wizard-hint" style="margin-top: 0.5rem;">
-                    Tick the people this run is for. The table below shows what each tick will create before anything is saved.
+                    Tick a job posting to include all its candidates in the evaluation.
                 </p>
                 {{else}}
                 <p class="wizard-hint-warn">There are no candidates in the pipeline yet - nobody can be ticked.</p>
@@ -295,7 +297,7 @@
         <div class="wizard-summary">
             <div class="wizard-summary-row"><span>Period</span><strong>{{.PeriodName}}</strong></div>
             <div class="wizard-summary-row"><span>Template</span><strong>{{.TemplateName}}</strong></div>
-            <div class="wizard-summary-row"><span>Scope</span><strong>{{len .SelectedCandidateIDs}} candidate{{if ne (len .SelectedCandidateIDs) 1}}s{{end}} chosen by hand</strong></div>
+            <div class="wizard-summary-row"><span>Scope</span><strong>{{len .SelectedCandidateIDs}} candidate{{if ne (len .SelectedCandidateIDs) 1}}s{{end}} selected by job posting group</strong></div>
             <div class="wizard-summary-row"><span>Pairing</span><strong>One evaluator for everyone{{if .EvaluatorName}} ({{.EvaluatorName}}){{end}}</strong></div>
             <div class="wizard-summary-row"><span>Due date</span><strong>{{if .DueDate}}{{.DueDate}}{{else}}None{{end}}</strong></div>
             <div class="wizard-summary-row"><span>Will be created</span><strong>{{.WillCreate}}</strong></div>
@@ -333,8 +335,7 @@
             <input type="hidden" name="template_id" value="{{.TemplateID}}">
             <input type="hidden" name="due_date" value="{{.DueDate}}">
             <input type="hidden" name="evaluator_id" value="{{.EvaluatorID}}">
-            {{range .SelectedCandidateIDs}}<input type="hidden" name="candidate_ids" value="{{.}}">{{end}}
-            <div class="wizard-actions wizard-actions-end">
+            {{range .SelectedCandidateIDs}}<input type="hidden" name="candidate_ids" value="{{.}}">{{end}}            <div class="wizard-actions wizard-actions-end">
                 <button type="button" data-include="closest form" class="btn btn-ghost" data-url="/pages/cycle/back/scope" data-request="POST"><i class="fa-solid fa-arrow-left text-xs"></i> Back</button>
                 <button type="submit" class="btn btn-love"><i class="fa-solid fa-paper-plane text-xs"></i> Create {{.WillCreate}} evaluations</button>
             </div>
@@ -350,22 +351,13 @@ function toggleCyclePeriodMode() {
     var existing = document.getElementById('cycle-existing-period');
     if (existing) existing.style.display = isNew ? 'none' : 'block';
 }
-// "Select all" is not a field of its own: it just flips every tick. Nothing
-// is requested until "Next", so the step never re-renders under the cursor.
-function cycleToggleAllCandidates(master) {
-    var boxes = document.querySelectorAll('#cycle-candidate-list .cycle-candidate');
-    boxes.forEach(function (box) { box.checked = master.checked; });
-    cycleSyncScopeSelection();
-}
-// Keep the master tick and the "N selected" count in step with the boxes.
+// Keep the "N postings selected" count in sync with the group checkboxes.
 function cycleSyncScopeSelection() {
-    var boxes = document.querySelectorAll('#cycle-candidate-list .cycle-candidate');
+    var boxes = document.querySelectorAll('#cycle-candidate-list .cycle-group-toggle');
     var checked = 0;
     boxes.forEach(function (box) { if (box.checked) checked++; });
-    var master = document.getElementById('cycle-select-all');
-    if (master) master.checked = boxes.length > 0 && checked === boxes.length;
     var count = document.getElementById('cycle-selected-count');
-    if (count) count.textContent = checked > 0 ? ' · ' + checked + ' selected' : '';
+    if (count) count.textContent = checked > 0 ? ' · ' + checked + ' posting' + (checked !== 1 ? 's' : '') + ' selected' : '';
 }
 </script>
 {{end}}

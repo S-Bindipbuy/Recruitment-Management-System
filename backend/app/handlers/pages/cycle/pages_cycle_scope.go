@@ -20,15 +20,48 @@ func (h *CycleHandler) showCycleStepScope(c *fiber.Ctx, data *cycles.CycleData) 
 // loadScope fills the parts of step 3 that follow from the form: which
 // candidates exist, which are ticked and what the preview will create.
 func (h *CycleHandler) loadScope(c *fiber.Ctx, data *cycles.CycleData) {
-	// Whatever was ticked survives the round trip; the rest of the step is
-	// carried by the caller so a failed submission can be re-drawn typed.
-	data.SelectedCandidateIDs = core.ReadScopeForm(c).CandidateIDs
+	form := core.ReadScopeForm(c)
+	// The form submits posting_ids (one per group tick). Expand them to
+	// candidate IDs so the rest of the wizard continues to work unchanged.
+	// If candidate_ids arrive instead (e.g. from the review-step back link)
+	// they are used directly so the selection round-trips correctly.
+	data.SelectedPostingIDs = form.PostingIDs
 	data.Workers = core.LoadActiveWorkers()
 	// Candidates have no manager and no department, so they are always
 	// assessed by one chosen evaluator.
-	data.Candidates = cycles.LoadCycleCandidates(data.PeriodID, data.TemplateID, data.SelectedCandidateIDs)
+	data.Candidates = cycles.LoadCycleCandidates(data.PeriodID, data.TemplateID, form.CandidateIDs)
+	if len(data.SelectedPostingIDs) > 0 {
+		data.SelectedCandidateIDs = cycles.CandidateIDsForPostings(data.SelectedPostingIDs, data.Candidates)
+		// Mark those candidates as Checked so the group AllSelected flag works.
+		chosen := make(map[int64]bool, len(data.SelectedCandidateIDs))
+		for _, id := range data.SelectedCandidateIDs {
+			chosen[id] = true
+		}
+		for i := range data.Candidates {
+			data.Candidates[i].Checked = chosen[data.Candidates[i].ID]
+		}
+	} else {
+		data.SelectedCandidateIDs = form.CandidateIDs
+	}
 	data.SelectedCandidateIDs = cycles.PruneCycleCandidateIDs(data.SelectedCandidateIDs, data.Candidates)
 	data.AllSelected = len(data.Candidates) > 0 && len(data.SelectedCandidateIDs) == len(data.Candidates)
+	data.CandidateGroups = cycles.GroupCycleCandidates(data.Candidates)
+	// Determine which posting groups are fully selected so the template can
+	// pre-check the right group checkboxes.
+	selectedSet := make(map[int64]bool, len(data.SelectedCandidateIDs))
+	for _, id := range data.SelectedCandidateIDs {
+		selectedSet[id] = true
+	}
+	postingSelected := make(map[int64]bool, len(data.SelectedPostingIDs))
+	for _, id := range data.SelectedPostingIDs {
+		postingSelected[id] = true
+	}
+	data.SelectedPostingIDs = nil
+	for _, g := range data.CandidateGroups {
+		if g.AllSelected {
+			data.SelectedPostingIDs = append(data.SelectedPostingIDs, g.PostingID)
+		}
+	}
 	data.RefreshPreview()
 }
 
@@ -43,6 +76,7 @@ func (h *CycleHandler) cycleScopeContext(c *fiber.Ctx) *cycles.CycleData {
 		DueDate:              form.DueDate,
 		EvaluatorID:          form.EvaluatorID,
 		SelectedCandidateIDs: form.CandidateIDs,
+		SelectedPostingIDs:   form.PostingIDs,
 	}
 	if period, err := evalsvc.PeriodServiceInstance.FindByID(form.PeriodID); err == nil {
 		data.PeriodID, data.PeriodName = period.ID, period.Name
@@ -74,6 +108,13 @@ func (h *CycleHandler) CycleChooseScope(c *fiber.Ctx) error {
 
 	evaluatorID := form.EvaluatorID
 	selected := form.CandidateIDs
+	// The scope step submits posting_ids (group ticks). Expand them to the
+	// individual candidates that belong to those postings. If candidate_ids
+	// arrive instead (back link from review), use them directly.
+	if len(form.PostingIDs) > 0 {
+		allCandidates := cycles.LoadCycleCandidates(period.ID, tmpl.ID, nil)
+		selected = cycles.CandidateIDsForPostings(form.PostingIDs, allCandidates)
+	}
 	data := &cycles.CycleData{
 		Step:                 cycles.CycleStepReview,
 		PeriodID:             period.ID,
@@ -83,6 +124,7 @@ func (h *CycleHandler) CycleChooseScope(c *fiber.Ctx) error {
 		DueDate:              form.DueDate,
 		EvaluatorID:          evaluatorID,
 		SelectedCandidateIDs: selected,
+		SelectedPostingIDs:   form.PostingIDs,
 	}
 	if evaluatorID > 0 {
 		data.EvaluatorName = core.UserName(evaluatorID)
@@ -90,7 +132,7 @@ func (h *CycleHandler) CycleChooseScope(c *fiber.Ctx) error {
 
 	if len(selected) == 0 {
 		data.Step = cycles.CycleStepScope
-		data.ErrMessage = "Tick at least one candidate to evaluate."
+		data.ErrMessage = "Tick at least one job posting to evaluate."
 		return h.showCycleStepScope(c, data)
 	}
 	if evaluatorID <= 0 {

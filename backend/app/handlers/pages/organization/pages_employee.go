@@ -55,6 +55,9 @@ func (h *OrganizationHandler) Employees(c *fiber.Ctx) error {
 		if e.UserID != nil {
 			userName = core.DisplayName(names, *e.UserID)
 		}
+		if userName == "" {
+			userName = e.FullName
+		}
 		item := EmployeeListItem{
 			Employee:       e,
 			UserName:       userName,

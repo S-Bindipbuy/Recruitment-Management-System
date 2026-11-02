@@ -1,9 +1,12 @@
 package evaluation
 
 import (
+	"database/sql"
 	"ems/app/enums"
 	evalmodel "ems/app/models/evaluation"
 	evalrepo "ems/app/repositories/evaluation"
+	"errors"
+	"time"
 )
 
 type EvaluationPeriodService struct{}
@@ -29,6 +32,20 @@ func (s *EvaluationPeriodService) FindAll() ([]evalmodel.EvaluationPeriod, error
 
 func (s *EvaluationPeriodService) FindByID(id int64) (*evalmodel.EvaluationPeriod, error) {
 	return evalrepo.PeriodRepo.FindByID(id)
+}
+
+// FindActive returns the active period covering the date, falling back to the
+// newest active period so a scheduling action does not depend on dates being
+// configured exactly.
+func (s *EvaluationPeriodService) FindActive(on time.Time) (*evalmodel.EvaluationPeriod, error) {
+	period, err := evalrepo.PeriodRepo.FindActive(on)
+	if err == nil {
+		return period, nil
+	}
+	if !errors.Is(err, sql.ErrNoRows) {
+		return nil, err
+	}
+	return evalrepo.PeriodRepo.FindLatestActive()
 }
 
 func (s *EvaluationPeriodService) Update(id int64, name, description, startDate, endDate, status string) (*evalmodel.EvaluationPeriod, error) {

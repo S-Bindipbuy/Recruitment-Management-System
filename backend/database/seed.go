@@ -32,6 +32,7 @@ func SeedDefaultRBAC() {
 		return
 	}
 	grantAdminAll()
+	seedMissingDefaultRoles()
 }
 
 func grantAdminAll() {
@@ -77,99 +78,114 @@ func seedPermissions() {
 	fmt.Printf("Seeded %d permissions\n", len(enums.PermissionCatalog))
 }
 
+type defaultRole struct {
+	role        string
+	description string
+	permissions []string
+}
+
+var defaultRoles = []defaultRole{
+	{
+		role: "admin", description: "Full system access",
+		permissions: enums.AllPermissionNames(),
+	},
+	{
+		role: "hrm", description: "HR management: employees, evaluations, reports",
+		permissions: []string{
+			string(enums.PermissionDashboardView),
+			string(enums.PermissionReportView),
+			string(enums.PermissionEmployeeManage),
+			string(enums.PermissionOrganizationManage),
+			string(enums.PermissionRecruitmentManage),
+			string(enums.PermissionInterviewView),
+			string(enums.PermissionInterviewAssign),
+			string(enums.PermissionInterviewScore),
+			string(enums.PermissionInterviewApprove),
+			string(enums.PermissionEvaluationManage),
+			string(enums.PermissionEvaluationAssign),
+			string(enums.PermissionEvaluationEvaluate),
+			string(enums.PermissionEvaluationApprove),
+			string(enums.PermissionAuditView),
+		},
+	},
+	{
+		role: "manager", description: "Manages workers and evaluates reports to them",
+		permissions: []string{
+			string(enums.PermissionDashboardView),
+			string(enums.PermissionReportView),
+			string(enums.PermissionInterviewView),
+			string(enums.PermissionInterviewAssign),
+			string(enums.PermissionInterviewScore),
+			string(enums.PermissionInterviewApprove),
+			string(enums.PermissionEvaluationAssign),
+			string(enums.PermissionEvaluationEvaluate),
+			string(enums.PermissionEvaluationApprove),
+		},
+	},
+	{
+		role: "employee", description: "Fills in the evaluations assigned to them",
+		permissions: []string{
+			string(enums.PermissionDashboardView),
+			string(enums.PermissionInterviewView),
+			string(enums.PermissionInterviewScore),
+			string(enums.PermissionEvaluationEvaluate),
+		},
+	},
+	{
+		role: "interviewer", description: "Scores the interviews they are assigned to",
+		permissions: []string{
+			string(enums.PermissionDashboardView),
+			string(enums.PermissionInterviewView),
+			string(enums.PermissionInterviewScore),
+		},
+	},
+}
+
 func seedDefaultRoles() {
-	permissionIDs := map[string]int64{}
-	rows, err := DB.Query("SELECT id, name FROM permissions")
-	if err != nil {
-		log.Printf("Failed to load permissions for seeding: %v", err)
-		return
-	}
-	defer rows.Close()
-	for rows.Next() {
-		var id int64
-		var name string
-		if err := rows.Scan(&id, &name); err == nil {
-			permissionIDs[name] = id
-		}
-	}
-
-	roleID := func(name, description string) int64 {
-		result, err := DB.Exec(
-			"INSERT OR IGNORE INTO roles (name, description) VALUES (?, ?)",
-			name, description,
-		)
-		if err != nil {
-			log.Printf("Failed to seed role %s: %v", name, err)
-			return 0
-		}
-		if id, err := result.LastInsertId(); err == nil && id > 0 {
-			return id
-		}
-		var existing int64
-		if err := DB.QueryRow("SELECT id FROM roles WHERE name = ?", name).Scan(&existing); err == nil {
-			return existing
-		}
-		return 0
-	}
-	grant := func(roleID int64, name string) {
-		if roleID == 0 {
-			return
-		}
-		if permsID, ok := permissionIDs[name]; ok {
-			DB.Exec("INSERT OR IGNORE INTO role_permissions (role_id, permission_id) VALUES (?, ?)", roleID, permsID)
-		}
-	}
-
-	defaults := []struct {
-		role        string
-		description string
-		permissions []string
-	}{
-		{
-			role: "admin", description: "Full system access",
-			permissions: enums.AllPermissionNames(),
-		},
-		{
-			role: "hrm", description: "HR management: employees, evaluations, reports",
-			permissions: []string{
-				string(enums.PermissionDashboardView),
-				string(enums.PermissionReportView),
-				string(enums.PermissionEmployeeManage),
-				string(enums.PermissionOrganizationManage),
-				string(enums.PermissionRecruitmentManage),
-				string(enums.PermissionEvaluationManage),
-				string(enums.PermissionEvaluationAssign),
-				string(enums.PermissionEvaluationEvaluate),
-				string(enums.PermissionEvaluationApprove),
-				string(enums.PermissionAuditView),
-			},
-		},
-		{
-			role: "manager", description: "Manages workers and evaluates reports to them",
-			permissions: []string{
-				string(enums.PermissionDashboardView),
-				string(enums.PermissionReportView),
-				string(enums.PermissionEvaluationAssign),
-				string(enums.PermissionEvaluationEvaluate),
-				string(enums.PermissionEvaluationApprove),
-			},
-		},
-		{
-			role: "employee", description: "Fills in the evaluations assigned to them",
-			permissions: []string{
-				string(enums.PermissionDashboardView),
-				string(enums.PermissionEvaluationEvaluate),
-			},
-		},
-	}
-
-	for _, d := range defaults {
-		id := roleID(d.role, d.description)
-		for _, p := range d.permissions {
-			grant(id, p)
-		}
+	for _, d := range defaultRoles {
+		createDefaultRole(d)
 	}
 	fmt.Println("Seeded default roles and role permissions")
+}
+
+// seedMissingDefaultRoles adds default roles introduced after an installation
+// was first created. Existing roles are left untouched: an administrator may
+// have deliberately adjusted their permissions.
+func seedMissingDefaultRoles() {
+	for _, d := range defaultRoles {
+		var id int64
+		if err := DB.QueryRow("SELECT id FROM roles WHERE LOWER(name) = LOWER(?)", d.role).Scan(&id); err == nil {
+			continue
+		}
+		createDefaultRole(d)
+	}
+}
+
+func createDefaultRole(d defaultRole) {
+	result, err := DB.Exec(
+		"INSERT OR IGNORE INTO roles (name, description) VALUES (?, ?)",
+		d.role, d.description,
+	)
+	if err != nil {
+		log.Printf("Failed to seed role %s: %v", d.role, err)
+		return
+	}
+	id, _ := result.LastInsertId()
+	if id == 0 {
+		if err := DB.QueryRow("SELECT id FROM roles WHERE name = ?", d.role).Scan(&id); err != nil {
+			log.Printf("Failed to find seeded role %s: %v", d.role, err)
+			return
+		}
+	}
+	for _, permission := range d.permissions {
+		if _, err := DB.Exec(
+			`INSERT OR IGNORE INTO role_permissions (role_id, permission_id)
+			 SELECT ?, id FROM permissions WHERE name = ?`,
+			id, permission,
+		); err != nil {
+			log.Printf("Failed to grant %s to %s: %v", permission, d.role, err)
+		}
+	}
 }
 
 func tableEmpty(table string) bool {

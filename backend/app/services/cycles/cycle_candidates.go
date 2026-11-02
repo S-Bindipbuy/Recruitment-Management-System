@@ -49,9 +49,10 @@ func CycleCandidateState(periodID, templateID int64) (map[int64]bool, map[int64]
 	return assigned, droppable
 }
 
-// LoadCycleCandidates builds the step-3 picker: everybody still in the
-// pipeline, with the tick they already carry and a flag on anyone who already
-// has this period's template - they are listed, but not silently re-created.
+// LoadCycleCandidates builds the step-3 picker: everybody who still needs an
+// evaluation, with the tick they already carry and a flag on anyone who
+// already has this period's template - pending/started rows are listed so they
+// can be dropped, but submitted/completed evaluations no longer appear.
 func LoadCycleCandidates(periodID, templateID int64, selected []int64) []CycleCandidateOption {
 	assigned, droppable := CycleCandidateState(periodID, templateID)
 	chosen := make(map[int64]bool, len(selected))
@@ -59,17 +60,78 @@ func LoadCycleCandidates(periodID, templateID int64, selected []int64) []CycleCa
 		chosen[id] = true
 	}
 
-	all, _ := candidatesvc.CandidateServiceInstance.FindHireableOptions()
+	all, _ := candidatesvc.CandidateServiceInstance.FindEvaluationCandidateOptions()
 	options := make([]CycleCandidateOption, 0, len(all))
 	for _, cand := range all {
 		options = append(options, CycleCandidateOption{
 			ID: cand.ID, Name: cand.Name, Email: cand.Email, Status: cand.Status,
+			JobPostingID: cand.JobPostingID, JobPostingTitle: cand.JobPostingTitle,
 			Assigned:  assigned[cand.ID],
 			Checked:   chosen[cand.ID],
 			Droppable: droppable[cand.ID],
 		})
 	}
 	return options
+}
+
+// GroupCycleCandidates splits the picker by job posting, preserving the
+// posting order the repository returned. Candidates without a posting go into
+// one "No job posting" group.
+func GroupCycleCandidates(options []CycleCandidateOption) []CycleCandidateGroup {
+	groups := make(map[int64]*CycleCandidateGroup)
+	order := make([]int64, 0)
+	for _, option := range options {
+		group, ok := groups[option.JobPostingID]
+		if !ok {
+			title := option.JobPostingTitle
+			if title == "" {
+				if option.JobPostingID == 0 {
+					title = "No job posting"
+				} else {
+					title = "Job posting"
+				}
+			}
+			group = &CycleCandidateGroup{PostingID: option.JobPostingID, PostingTitle: title}
+			groups[option.JobPostingID] = group
+			order = append(order, option.JobPostingID)
+		}
+		group.Candidates = append(group.Candidates, option)
+	}
+
+	grouped := make([]CycleCandidateGroup, 0, len(order))
+	for _, id := range order {
+		group := groups[id]
+		allSelected := len(group.Candidates) > 0
+		for _, candidate := range group.Candidates {
+			if !candidate.Checked {
+				allSelected = false
+				break
+			}
+		}
+		group.AllSelected = allSelected
+		grouped = append(grouped, *group)
+	}
+	return grouped
+}
+
+// CandidateIDsForPostings expands a list of job posting IDs into the candidate
+// IDs that belong to those postings, drawing from the already-loaded options so
+// no second database query is needed.
+func CandidateIDsForPostings(postingIDs []int64, options []CycleCandidateOption) []int64 {
+	if len(postingIDs) == 0 {
+		return nil
+	}
+	wanted := make(map[int64]bool, len(postingIDs))
+	for _, id := range postingIDs {
+		wanted[id] = true
+	}
+	ids := make([]int64, 0)
+	for _, o := range options {
+		if wanted[o.JobPostingID] {
+			ids = append(ids, o.ID)
+		}
+	}
+	return ids
 }
 
 // PruneCycleCandidateIDs drops ticks pointing at somebody who can no longer be

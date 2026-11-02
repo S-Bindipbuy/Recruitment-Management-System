@@ -19,6 +19,42 @@ fragments (`/pages/*`) used by the vanilla JavaScript SPA. There is a public job
 - Dashboards, reports, recruitment reports, and audit logs
 - Public job listings and application form
 
+## Recruitment workflow
+
+The recruitment side is HR-operated, with role-based access for interviewers and
+assigned evaluators. Interviewers and evaluators log in to score and schedule
+only what is assigned to them; candidates do not log in.
+
+1. HR publishes a job posting and configures its interview rounds (with a
+   weight per round). A large evaluation template can be split across rounds
+   by assigning different template sections to each round.
+2. Candidates are added from uploaded CVs and move through
+   `new → screening → interviewing → hired/rejected`. Scheduling an interview
+   advances a fresh applicant automatically; rejection requires a reason and is
+   kept in the candidate's status history.
+3. HR schedules the interview with one or more interviewers on the panel, then
+   each panel member scores the round independently. Candidates are grouped by
+   job posting with a per-group select-all, so a whole group can be booked in
+   one submit. The round list follows the chosen group and the panel is grouped
+   by department, so HR picks a department first and then the interviewers in
+   it. Each feedback row keeps the panel member the score is attributed to, the
+   user who entered it, and answers and scores for the round's template
+   questions. The interview's overall score is the weighted average of those
+   question scores. Calls, emails, and messages stay outside the system;
+   HR can log each contact from the candidates list or a job posting's candidate
+   list, and set the next follow-up date.
+4. Scores from every interviewer are combined into a weighted average per
+   posting. Approvers see the ranking on the Interviews page; candidates are
+   ranked as soon as at least one interviewer has submitted a score. HR can
+   hire a scored candidate without waiting for every panel review or round.
+5. Approvers hire candidates from the Approvals page after at least one
+   interview review is scored. They do not need to wait for every round or a
+   separate evaluation. Hiring creates the employee record (without
+   provisioning a login) and writes the `hired` transition in the same
+   transaction.
+6. The dashboard shows the HR task queue: candidates whose follow-up is due in
+   the next week and past interviews that still need a score.
+
 ## Tech stack
 
 - **Backend:** Go 1.26 + [Fiber v2](https://gofiber.io/)

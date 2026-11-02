@@ -28,6 +28,9 @@ func registerRecruitmentPages(pages fiber.Router, h *recruitment.RecruitmentHand
 
 	pages.Get("/interviews", h.Interviews)
 	pages.Post("/interviews", h.CreateInterview)
+	pages.Post("/interview-rounds", h.CreateInterviewRound)
+	pages.Post("/interview-rounds/:id/update", h.UpdateInterviewRound)
+	pages.Post("/interview-rounds/:id/delete", h.DeleteInterviewRound)
 	pages.Post("/interviews/:id/status", h.UpdateInterviewStatus)
 	pages.Post("/interviews/:id/delete", h.DeleteInterview)
 

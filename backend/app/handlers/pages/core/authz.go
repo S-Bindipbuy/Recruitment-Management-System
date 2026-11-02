@@ -37,6 +37,73 @@ func CurrentUserID(c *fiber.Ctx) int64 {
 	return 0
 }
 
+// HasAnyPermission reports whether the current user holds at least one of the
+// supplied permissions. It mirrors RequirePermission without aborting the
+// request, for pages that render different controls per role.
+func HasAnyPermission(c *fiber.Ctx, permissions ...enums.Permission) bool {
+	return usersvc.PolicyServiceInstance.CanAny(CurrentUserID(c), permissions...)
+}
+
+// ── Interview access scopes ──
+//
+// Interview permissions are split by job, not just by page:
+//   - interview.view    -> only schedules the user is personally attached to
+//   - interview.score   -> the view scope plus scoring own panel feedback
+//   - interview.assign  -> create/edit schedules and see every schedule
+//   - interview.approve -> see every schedule and the combined ranking
+//
+// recruitment.manage implies all of them. evaluation.assign deliberately
+// grants a read-only view of every schedule because the person assigning
+// evaluations needs to see the pipeline without being able to change it.
+
+// CanViewAllInterviews reports whether the user may see every interview, not
+// just the ones they are attached to.
+func CanViewAllInterviews(c *fiber.Ctx) bool {
+	return HasAnyPermission(c,
+		enums.PermissionRecruitmentManage,
+		enums.PermissionInterviewAssign,
+		enums.PermissionInterviewApprove,
+		enums.PermissionEvaluationAssign,
+	)
+}
+
+// CanManageInterviews reports whether the user may create, edit or delete
+// schedules and rounds.
+func CanManageInterviews(c *fiber.Ctx) bool {
+	return HasAnyPermission(c,
+		enums.PermissionRecruitmentManage,
+		enums.PermissionInterviewAssign,
+	)
+}
+
+// CanApproveInterviews reports whether the user may see the final candidate
+// ranking built from every interviewer's score and make the final hiring decision.
+func CanApproveInterviews(c *fiber.Ctx) bool {
+	return HasAnyPermission(c,
+		enums.PermissionRecruitmentManage,
+		enums.PermissionInterviewApprove,
+		enums.PermissionEvaluationApprove,
+		enums.PermissionEvaluationManage,
+	)
+}
+
+// CanHireCandidates reports whether the caller has the final authority to hire
+// candidates based on their interview evaluation scores.
+func CanHireCandidates(c *fiber.Ctx) bool {
+	return CanApproveInterviews(c)
+}
+
+// CanScoreInterviews reports whether the user may open the scoring form. Panel
+// membership is still checked per interview; this only says the role is
+// allowed to score at all.
+func CanScoreInterviews(c *fiber.Ctx) bool {
+	return HasAnyPermission(c,
+		enums.PermissionRecruitmentManage,
+		enums.PermissionInterviewAssign,
+		enums.PermissionInterviewScore,
+	)
+}
+
 // RequireAdmin restricts a handler to administrators only. Managing users,
 // roles and permissions is reserved for the admin role, independent of what
 // individual permissions a role happens to carry.

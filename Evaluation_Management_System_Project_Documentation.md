@@ -216,6 +216,10 @@ All modes use the same migrations and SQL. The native library supplied by
 
 - **`database/seed.sql`** — portable, SQLite-compatible import (roles, permissions,
   defaults). Usable manually: `sqlite3 storage/db < backend/database/seed.sql`.
+- **`database/seed_interviews.sql`** — optional demo data: creates one applicant
+  who is still in the pipeline with a completed interview and feedback, so the
+  Candidate Ranking table has a row. Idempotent and safe to re-run:
+  `sqlite3 storage/db < backend/database/seed_interviews.sql`.
 - **`SeedDefaultRBAC()`** — runs at boot: creates the permission catalog
   (12 permissions), roles (`admin`, manager, etc.), grants the admin role every
   permission.

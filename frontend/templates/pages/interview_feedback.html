@@ -19,7 +19,7 @@
             <div class="grid sm:grid-cols-2 gap-4">
                 <div><span class="text-sm text-muted">Candidate:</span><p class="font-medium">{{.Interview.CandidateName}}</p></div>
                 <div><span class="text-sm text-muted">Round:</span><p class="font-medium">{{.Interview.RoundName}}</p></div>
-                <div><span class="text-sm text-muted">Interviewer:</span><p class="font-medium">{{.Interview.InterviewerName}}</p></div>
+                <div><span class="text-sm text-muted">Interview panel:</span><p class="font-medium">{{.Interview.InterviewerName}}</p></div>
                 <div><span class="text-sm text-muted">Scheduled:</span><p class="font-medium">{{.Interview.ScheduledAt.Format "Jan 02, 2006 15:04"}}</p></div>
                 <div><span class="text-sm text-muted">Duration:</span><p class="font-medium">{{.Interview.DurationMinutes}} minutes</p></div>
                 <div><span class="text-sm text-muted">Status:</span><p class="font-medium"><span class="badge badge-active">{{.Interview.Status}}</span></p></div>
@@ -27,19 +27,172 @@
         </div>
     </div>
 
+    {{if .CanViewAll}}
     <div class="card">
-        <div class="card-header"><h4 class="card-title">Feedback</h4></div>
+        <div class="card-header">
+            <h4 class="card-title">Panel Scores</h4>
+            {{if .AggregateScore}}
+            <div style="text-align: right;">
+                <p class="text-xs text-muted">Combined average</p>
+                <p class="font-bold" style="color: var(--rose-pine); font-size: 1.25rem;">{{printf "%.2f" (derefFloat .AggregateScore)}} / 10</p>
+                {{if .AggregateTotalScore}}<p class="mt-1 text-xs text-muted">This interview's score total: {{printf "%.2f" (derefFloat .AggregateTotalScore)}}</p>{{end}}
+                {{if .CandidateFinalTotal}}<p class="mt-1 font-semibold text-sm" style="color: var(--rose-pine);">Final total across all interviewer scores: {{printf "%.2f" (derefFloat .CandidateFinalTotal)}}</p>{{end}}
+            </div>
+            {{end}}
+        </div>
+        <div class="card-body space-y-4">
+            <p class="text-sm text-muted">Each interviewer scores the candidate independently. The combined average is for this interview; the final total adds submitted interviewer scores across all of this candidate's interviews.</p>
+            <div class="table-responsive">
+                <table>
+                    <thead class="table-head"><tr>
+                        <th>Interviewer</th>
+                        <th>Score</th>
+                        <th>Recommendation</th>
+                        <th>Entered by</th>
+                        <th>Submitted</th>
+                        <th class="text-right">Action</th>
+                    </tr></thead>
+                    <tbody>
+                        {{range .AllFeedback}}
+                        <tr>
+                            <td class="font-medium">{{.InterviewerName}}</td>
+                            <td>{{if .Score}}{{printf "%.2f" (derefFloat .Score)}} / 10{{else}}<span class="text-muted">—</span>{{end}}</td>
+                            <td class="text-sm">{{.Recommendation}}</td>
+                            <td class="text-sm table-cell-muted">{{.RecordedByName}}</td>
+                            <td class="text-sm">{{if .SubmittedAt}}{{.SubmittedAt.Format "Jan 02, 2006 15:04"}}{{else}}—{{end}}</td>
+                            <td class="text-right">
+                                <a href="/pages/interviews/{{$.Interview.ID}}/feedback?interviewer_id={{.InterviewerID}}" class="btn btn-sm btn-ghost">Open</a>
+                            </td>
+                        </tr>
+                        {{else}}
+                        <tr><td colspan="6" class="empty-state"><i class="fa-regular fa-comment empty-state-icon"></i>No panel member has scored this interview yet.</td></tr>
+                        {{end}}
+                    </tbody>
+                </table>
+            </div>
+
+            {{if .Panel}}
+            <div class="flex flex-wrap items-center gap-2">
+                <span class="text-sm text-muted">Jump to a panel member:</span>
+                {{range .Panel}}
+                <a href="/pages/interviews/{{$.Interview.ID}}/feedback?interviewer_id={{.UserID}}" class="btn btn-sm {{if eq .UserID $.SelectedInterviewerID}}btn-primary{{else}}btn-ghost{{end}}">{{.Name}}</a>
+                {{end}}
+            </div>
+            {{end}}
+        </div>
+    </div>
+    {{end}}
+
+    <div class="card">
+        <div class="card-header">
+            <h4 class="card-title">
+                {{if .Feedback}}{{.Feedback.InterviewerName}}{{else}}Panel feedback{{end}}
+            </h4>
+            {{if and .Feedback .Feedback.RecordedByName}}
+            <p class="text-sm text-muted">Entered by {{.Feedback.RecordedByName}}</p>
+            {{end}}
+        </div>
         <div class="card-body">
+            <p class="text-sm text-muted" style="margin-bottom: 1rem;">
+                {{if .CanViewAll}}
+                Scores are recorded per interviewer. Each panel member scores independently — only the interviewer themselves can submit their own score.
+                {{else}}
+                Score each question and the overall score is calculated from those weighted scores. Your score is kept separately from the rest of the panel.
+                {{end}}
+                {{if .HasQuestions}}Only the template sections assigned to this round are shown.{{end}}
+            </p>
+
+            {{if and .Feedback .Feedback.Score}}
+            <div class="eval-result-card" style="margin-bottom: 1rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;">
+                <div>
+                    <p class="eval-result-label">{{if .Feedback}}{{.Feedback.InterviewerName}}'s Score{{else}}Overall Score{{end}}</p>
+                    <p class="eval-result-value">{{printf "%.2f" (derefFloat .Feedback.Score)}} / 10</p>
+                </div>
+                <p class="text-sm text-muted">Calculated from the question scores below.</p>
+            </div>
+            {{end}}
+
+            {{if .CanEdit}}
             <form
                   class="space-y-4" method="post" action="/pages/interviews/{{.Interview.ID}}/feedback" data-ajax>
 
-                <div class="grid sm:grid-cols-2 gap-4">
-                    <div class="form-group">
-                        <label class="form-label">Score (0-10)</label>
-                        <input type="number" name="score" min="0" max="10" step="0.1"
-                               {{if .Feedback}}value="{{printf "%.1f" .Feedback.Score}}"{{end}}
-                               class="form-input" placeholder="e.g. 7.5">
+                {{if .Sections}}
+                <div class="space-y-4">
+                    <div>
+                        <h4 class="font-bold" style="color: var(--rose-pine);">Round Questions</h4>
+                        <p class="text-sm text-muted">
+                            {{if .TemplateName}}{{.TemplateName}} — {{end}}only the template sections assigned to this round.
+                            Each question's score is weighted into the overall score.
+                        </p>
                     </div>
+                    {{range .Sections}}
+                    <div class="eval-section">
+                        <div class="eval-section-header">
+                            <h4 class="eval-section-title">{{.Name}}</h4>
+                            {{if .Description}}<p class="eval-section-desc">{{.Description}}</p>{{end}}
+                        </div>
+                        {{if .Questions}}
+                        {{range .Questions}}
+                        {{$q := .Model}}
+                        <div class="eval-question">
+                            <label class="eval-question-label" for="q-{{$q.ID}}">
+                                {{$q.Question}}{{if .Required}}<span class="eval-question-required"> *</span>{{end}}
+                            </label>
+                            {{if $q.Description}}<p class="eval-question-desc">{{$q.Description}}</p>{{else}}<div class="mb-2"></div>{{end}}
+
+                            {{if eq $q.QuestionType "text"}}
+                            <textarea name="q_{{$q.ID}}" id="q-{{$q.ID}}" {{if .Required}}required{{end}} class="eval-textarea">{{with .Answer}}{{.TextValue}}{{end}}</textarea>
+                            <div class="form-group" style="max-width: 12rem; margin-top: 0.75rem;">
+                                <label class="form-label" for="q-score-{{$q.ID}}">Score (0-10)</label>
+                                <input type="number" step="0.5" min="0" max="10" name="q_score_{{$q.ID}}" id="q-score-{{$q.ID}}" {{if .Required}}required{{end}} class="eval-input" placeholder="0 - 10" {{with .Answer}}{{if .RatingValue}}value="{{printf "%g" (derefFloat .RatingValue)}}"{{end}}{{end}}>
+                            </div>
+
+                            {{else if eq $q.QuestionType "number"}}
+                            <input type="number" step="any" name="q_{{$q.ID}}" id="q-{{$q.ID}}" {{if .Required}}required{{end}} class="eval-input" {{with .Answer}}{{if .NumericValue}}value="{{printf "%g" (derefFloat .NumericValue)}}"{{end}}{{end}}>
+                            <div class="form-group" style="max-width: 12rem; margin-top: 0.75rem;">
+                                <label class="form-label" for="q-score-{{$q.ID}}">Score (0-10)</label>
+                                <input type="number" step="0.5" min="0" max="10" name="q_score_{{$q.ID}}" id="q-score-{{$q.ID}}" {{if .Required}}required{{end}} class="eval-input" placeholder="0 - 10" {{with .Answer}}{{if .RatingValue}}value="{{printf "%g" (derefFloat .RatingValue)}}"{{end}}{{end}}>
+                            </div>
+
+                            {{else if eq $q.QuestionType "boolean"}}
+                            {{$answer := false}}{{if and .Answer .Answer.BooleanValue}}{{$answer = derefBool .Answer.BooleanValue}}{{end}}
+                            <select name="q_{{$q.ID}}" id="q-{{$q.ID}}" {{if .Required}}required{{end}} class="eval-input">
+                                <option value="">-- Select --</option>
+                                <option value="true" {{if $answer}}selected{{end}}>Yes</option>
+                                <option value="false" {{if and .Answer .Answer.BooleanValue (not $answer)}}selected{{end}}>No</option>
+                            </select>
+                            <div class="form-group" style="max-width: 12rem; margin-top: 0.75rem;">
+                                <label class="form-label" for="q-score-{{$q.ID}}">Score (0-10)</label>
+                                <input type="number" step="0.5" min="0" max="10" name="q_score_{{$q.ID}}" id="q-score-{{$q.ID}}" {{if .Required}}required{{end}} class="eval-input" placeholder="0 - 10" {{with .Answer}}{{if .RatingValue}}value="{{printf "%g" (derefFloat .RatingValue)}}"{{end}}{{end}}>
+                            </div>
+
+                            {{else}}
+                            <div class="form-group" style="max-width: 12rem;">
+                                <label class="form-label" for="q-{{$q.ID}}">Score (0-10)</label>
+                                <input type="number" step="0.5" min="0" max="10" name="q_{{$q.ID}}" id="q-{{$q.ID}}" {{if .Required}}required{{end}} placeholder="0 - 10" class="eval-input" {{with .Answer}}{{if .RatingValue}}value="{{printf "%g" (derefFloat .RatingValue)}}"{{end}}{{end}}>
+                            </div>
+                            {{end}}
+                        </div>
+                        {{end}}
+                        {{else}}
+                        <div class="eval-empty">No questions in this section.</div>
+                        {{end}}
+                    </div>
+                    {{end}}
+                </div>
+                <hr style="border-color: var(--rose-border);">
+                {{end}}
+
+                <div class="grid sm:grid-cols-2 gap-4">
+                    {{if not .HasQuestions}}
+                    <div class="form-group">
+                        <label class="form-label">Overall Score (0-10)</label>
+                        <input type="number" name="score" min="0" max="10" step="0.1"
+                               {{if .Feedback}}{{with .Feedback.Score}}value="{{printf "%.1f" (derefFloat .)}}"{{end}}{{end}}
+                               class="form-input" placeholder="e.g. 7.5">
+                        <p class="text-xs text-muted mt-1">This round has no questions, so enter this interviewer's overall score.</p>
+                    </div>
+                    {{end}}
                     <div class="form-group">
                         <label class="form-label">Recommendation</label>
                         <select name="recommendation" class="form-select">
@@ -73,6 +226,21 @@
                     <button type="submit" class="btn btn-love">Save Feedback</button>
                 </div>
             </form>
+            {{else}}
+            <div class="space-y-4">
+                {{if .Feedback}}
+                <div class="grid sm:grid-cols-2 gap-4">
+                    <div><span class="text-sm text-muted">Recommendation:</span><p class="font-medium">{{.Feedback.Recommendation}}</p></div>
+                    <div><span class="text-sm text-muted">Recorded by:</span><p class="font-medium">{{.Feedback.RecordedByName}}</p></div>
+                </div>
+                {{if .Feedback.Strengths}}<div><span class="text-sm text-muted">Strengths:</span><p>{{.Feedback.Strengths}}</p></div>{{end}}
+                {{if .Feedback.Weaknesses}}<div><span class="text-sm text-muted">Weaknesses:</span><p>{{.Feedback.Weaknesses}}</p></div>{{end}}
+                {{if .Feedback.Comments}}<div><span class="text-sm text-muted">Comments:</span><p>{{.Feedback.Comments}}</p></div>{{end}}
+                {{else}}
+                <p class="text-sm text-muted">No score has been recorded for this panel member yet.</p>
+                {{end}}
+            </div>
+            {{end}}
         </div>
     </div>
     {{else}}

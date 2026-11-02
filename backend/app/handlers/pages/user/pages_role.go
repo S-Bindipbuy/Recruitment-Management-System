@@ -61,6 +61,15 @@ var permissionGroupDefs = []struct {
 		},
 	},
 	{
+		Key: "interviews", Label: "Interviews", Description: "Interview schedules, panels and candidate scoring.",
+		Match: func(n string) bool { return strings.HasPrefix(n, "interview.") },
+		Levels: []PermissionLevel{
+			{Key: "view", Label: "View my schedule", PermissionNames: []string{"interview.view"}},
+			{Key: "interviewer", Label: "Interviewer (view + score)", PermissionNames: []string{"interview.view", "interview.score"}},
+			{Key: "manager", Label: "Manage schedules and approve", PermissionNames: []string{"interview.view", "interview.assign", "interview.score", "interview.approve"}},
+		},
+	},
+	{
 		Key: "evaluation", Label: "Evaluation", Description: "Run, assign and review performance evaluations.",
 		Match: func(n string) bool { return strings.HasPrefix(n, "evaluation.") },
 		Levels: []PermissionLevel{

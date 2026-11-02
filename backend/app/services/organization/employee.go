@@ -53,6 +53,12 @@ func (s *EmployeeService) FindActiveWorkers() ([]usermodel.WorkerOption, error) 
 	return orgrepo.EmployeeRepo.FindActiveWorkers()
 }
 
+// FindActiveInterviewers lists active workers who may be scheduled as
+// interviewers in the HR-operated recruitment module.
+func (s *EmployeeService) FindActiveInterviewers() ([]usermodel.WorkerOption, error) {
+	return orgrepo.EmployeeRepo.FindActiveInterviewers()
+}
+
 // IsActiveWorker reports whether the user still holds an active employee
 // record and an active user account.
 func (s *EmployeeService) IsActiveWorker(userID int64) (bool, error) {

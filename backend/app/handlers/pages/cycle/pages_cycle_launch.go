@@ -59,7 +59,7 @@ func (h *CycleHandler) CycleLaunch(c *fiber.Ctx) error {
 
 	dueDate := core.DateFromForm(form.DueDate)
 
-	if err := evalsvc.AssignmentServiceInstance.CreateMany(period.ID, tmpl.ID, pairs, dueDate); err != nil {
+	if err := evalsvc.AssignmentServiceInstance.CreateMany(period.ID, tmpl.ID, pairs, dueDate, core.CurrentUserID(c)); err != nil {
 		data := &cycles.CycleData{
 			Step:                 cycles.CycleStepReview,
 			PeriodID:             period.ID,

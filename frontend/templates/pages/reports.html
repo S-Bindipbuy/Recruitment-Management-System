@@ -1,17 +1,50 @@
 {{define "page-reports"}}
 <div class="space-y-6" id="reports-page">
-    <div class="page-header">
+    <div class="page-header flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div class="page-header-left">
             <h3 class="page-title">Reports</h3>
             <p class="text-sm text-muted">Recruitment and candidate evaluation summary</p>
         </div>
-        <a href="/pages/reports" class="report-refresh">Refresh</a>
+        <a href="/pages/reports" class="report-refresh" data-refresh>Refresh</a>
     </div>
+
+    <form method="get" action="/pages/reports" class="card" data-ajax>
+        <div class="card-body">
+            <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                <div class="form-group">
+                    <label class="form-label" for="filter-posting">Job Posting</label>
+                    <select name="job_posting_id" id="filter-posting" class="form-select">
+                        <option value="">All postings</option>
+                        {{range .Postings}}<option value="{{.ID}}" {{if eq $.SelectedJobPostingID .ID}}selected{{end}}>{{.Title}}</option>{{end}}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="filter-decision">Decision</label>
+                    <select name="decision" id="filter-decision" class="form-select">
+                        <option value="">Any decision</option>
+                        <option value="hire" {{if eq .SelectedDecision "hire"}}selected{{end}}>Hire</option>
+                        <option value="maybe" {{if eq .SelectedDecision "maybe"}}selected{{end}}>Maybe</option>
+                        <option value="reject" {{if eq .SelectedDecision "reject"}}selected{{end}}>Reject</option>
+                        <option value="pending" {{if eq .SelectedDecision "pending"}}selected{{end}}>Pending</option>
+                        <option value="in_progress" {{if eq .SelectedDecision "in_progress"}}selected{{end}}>In progress</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="filter-search">Search</label>
+                    <input name="q" id="filter-search" value="{{.SearchQuery}}" class="form-input" placeholder="Candidate, position or department">
+                </div>
+            </div>
+            <div class="flex justify-end gap-2 mt-2">
+                {{if .HasFilters}}<a href="/pages/reports" class="btn btn-ghost">Clear</a>{{end}}
+                <button type="submit" class="btn btn-primary"><i class="fa-solid fa-filter text-xs"></i> Apply filters</button>
+            </div>
+        </div>
+    </form>
 
     <div class="card card-padded">
         <h4 class="font-semibold mb-4">Candidate Summary</h4>
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div class="report-summary-card report-summary-blue"><p>{{len .Summaries}}</p><p>Candidates</p></div>
+            <div class="report-summary-card report-summary-blue"><p>{{len .Summaries}}</p><p>In pipeline</p></div>
             <div class="report-summary-card report-summary-green"><p>{{len .Activities}}</p><p>Interviewers</p></div>
             <div class="report-summary-card report-summary-yellow"><p>{{len .Decisions}}</p><p>Decisions</p></div>
             <div class="report-summary-card report-summary-purple"><p>{{.Stats.CompletedEvals}}</p><p>Completed Evals</p></div>
@@ -20,18 +53,22 @@
 
     <div class="card card-padded">
         <div class="flex items-center justify-between mb-4">
-            <h4 class="font-semibold">Candidate Evaluation Summaries</h4>
+            <div>
+                <h4 class="font-semibold">Candidate Evaluation Summaries</h4>
+                <p class="text-sm text-muted">Candidates still in the pipeline. Hired candidates leave this list and appear under Hiring Decisions.</p>
+            </div>
             <span class="text-sm text-muted">{{len .Summaries}} candidate{{if ne (len .Summaries) 1}}s{{end}}</span>
         </div>
         {{if .Summaries}}
-        <div class="overflow-x-auto">
+        <div class="table-responsive">
             <table>
                 <thead class="table-head">
                     <tr>
+                        <th>Rank</th>
                         <th>Candidate</th>
                         <th>Position</th>
                         <th>Interviews</th>
-                        <th>Completed</th>
+                        <th>Rounds</th>
                         <th>Avg Score</th>
                         <th>Highest</th>
                         <th>Lowest</th>
@@ -40,16 +77,17 @@
                 </thead>
                 <tbody>
                     {{range .Summaries}}
-                    <tr class="hover:bg-gray-50">
+                    <tr class="hover:bg-gray-50{{if .LatestInterviewID}} table-row-link{{end}}"{{if .LatestInterviewID}} data-href="/pages/interviews/{{.LatestInterviewID}}/feedback"{{end}}>
+                        <td class="text-sm font-medium">{{if .Rank}}#{{.Rank}}{{else}}-{{end}}</td>
                         <td class="text-sm font-medium">{{.CandidateName}}</td>
                         <td class="text-sm">{{if .PositionName}}{{.PositionName}}{{else}}-{{end}}</td>
                         <td class="text-sm">{{.TotalInterviews}}</td>
-                        <td class="text-sm">{{.CompletedReviews}}</td>
+                        <td class="text-sm">{{.CompletedRounds}}/{{.TotalRounds}}</td>
                         <td class="text-sm">{{printf "%.1f" .AverageScore}}</td>
                         <td class="text-sm">{{printf "%.1f" .HighestScore}}</td>
                         <td class="text-sm">{{printf "%.1f" .LowestScore}}</td>
                         <td>
-                            <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full {{if eq .FinalDecision "hire"}}bg-green-100 text-green-800{{else if eq .FinalDecision "maybe"}}bg-yellow-100 text-yellow-800{{else}}bg-red-100 text-red-800{{end}}">{{.FinalDecision}}</span>
+                            <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full {{if eq .FinalDecision "hire"}}bg-green-100 text-green-800{{else if eq .FinalDecision "maybe"}}bg-yellow-100 text-yellow-800{{else if eq .FinalDecision "in_progress"}}bg-blue-100 text-blue-800{{else if eq .FinalDecision "pending"}}bg-gray-100 text-gray-700{{else}}bg-red-100 text-red-800{{end}}">{{.FinalDecision}}</span>
                         </td>
                     </tr>
                     {{end}}
@@ -57,7 +95,7 @@
             </table>
         </div>
         {{else}}
-        <div class="empty-state">No candidate data yet.</div>
+        <div class="empty-state">No candidates are still in the pipeline.</div>
         {{end}}
     </div>
 
@@ -67,7 +105,7 @@
             <span class="text-sm text-muted">{{len .Activities}} interviewer{{if ne (len .Activities) 1}}s{{end}}</span>
         </div>
         {{if .Activities}}
-        <div class="overflow-x-auto">
+        <div class="table-responsive">
             <table>
                 <thead class="table-head">
                     <tr>
@@ -102,7 +140,7 @@
             <span class="text-sm text-muted">{{len .Decisions}} candidate{{if ne (len .Decisions) 1}}s{{end}}</span>
         </div>
         {{if .Decisions}}
-        <div class="overflow-x-auto">
+        <div class="table-responsive">
             <table>
                 <thead class="table-head">
                     <tr>
@@ -117,7 +155,7 @@
                 </thead>
                 <tbody>
                     {{range .Decisions}}
-                    <tr class="hover:bg-gray-50">
+                    <tr class="hover:bg-gray-50{{if .LatestInterviewID}} table-row-link{{end}}"{{if .LatestInterviewID}} data-href="/pages/interviews/{{.LatestInterviewID}}/feedback"{{end}}>
                         <td class="text-sm font-medium">{{.CandidateName}}</td>
                         <td class="text-sm">{{if .PositionName}}{{.PositionName}}{{else}}-{{end}}</td>
                         <td class="text-sm">{{if .DepartmentName}}{{.DepartmentName}}{{else}}-{{end}}</td>

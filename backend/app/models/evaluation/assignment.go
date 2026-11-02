@@ -3,19 +3,24 @@ package evaluation
 import "time"
 
 type EvaluationAssignment struct {
-	ID                   int64      `json:"id" db:"id"`
-	EvaluationPeriodID   int64      `json:"evaluation_period_id" db:"evaluation_period_id"`
-	EvaluationTemplateID int64      `json:"evaluation_template_id" db:"evaluation_template_id"`
-	EvaluatorID          int64      `json:"evaluator_id" db:"evaluator_id"`
-	EvaluateeID          int64      `json:"evaluatee_id" db:"evaluatee_id"`
-	CandidateID          *int64     `json:"candidate_id" db:"candidate_id"`
-	DueDate              *time.Time `json:"due_date" db:"due_date"`
-	Status               string     `json:"status" db:"status"`
-	StartedAt            *time.Time `json:"started_at" db:"started_at"`
-	SubmittedAt          *time.Time `json:"submitted_at" db:"submitted_at"`
-	CompletedAt          *time.Time `json:"completed_at" db:"completed_at"`
-	CreatedAt            time.Time  `json:"created_at" db:"created_at"`
-	UpdatedAt            time.Time  `json:"updated_at" db:"updated_at"`
+	ID                   int64  `json:"id" db:"id"`
+	EvaluationPeriodID   int64  `json:"evaluation_period_id" db:"evaluation_period_id"`
+	EvaluationTemplateID int64  `json:"evaluation_template_id" db:"evaluation_template_id"`
+	EvaluatorID          int64  `json:"evaluator_id" db:"evaluator_id"`
+	EvaluateeID          int64  `json:"evaluatee_id" db:"evaluatee_id"`
+	CandidateID          *int64 `json:"candidate_id" db:"candidate_id"`
+	// InterviewID and InterviewRoundID are set for evaluations that were
+	// created by scheduling an interview. Such a row evaluates one round only
+	// and completes without candidate-level approval.
+	InterviewID      *int64     `json:"interview_id" db:"interview_id"`
+	InterviewRoundID *int64     `json:"interview_round_id" db:"interview_round_id"`
+	DueDate          *time.Time `json:"due_date" db:"due_date"`
+	Status           string     `json:"status" db:"status"`
+	StartedAt        *time.Time `json:"started_at" db:"started_at"`
+	SubmittedAt      *time.Time `json:"submitted_at" db:"submitted_at"`
+	CompletedAt      *time.Time `json:"completed_at" db:"completed_at"`
+	CreatedAt        time.Time  `json:"created_at" db:"created_at"`
+	UpdatedAt        time.Time  `json:"updated_at" db:"updated_at"`
 }
 
 type EvaluationResponse struct {

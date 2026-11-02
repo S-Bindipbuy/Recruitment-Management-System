@@ -82,3 +82,41 @@ func CurrentUserID(c *fiber.Ctx) int64 {
 	}
 	return 0
 }
+
+// CanAny reports whether the current user holds at least one permission.
+func CanAny(c *fiber.Ctx, permissions ...enums.Permission) bool {
+	return usersvc.PolicyServiceInstance.CanAny(CurrentUserID(c), permissions...)
+}
+
+// ── Interview access scopes (mirrors handlers/pages/core/authz.go) ──
+
+func CanViewAllInterviews(c *fiber.Ctx) bool {
+	return usersvc.PolicyServiceInstance.CanAny(CurrentUserID(c),
+		enums.PermissionRecruitmentManage,
+		enums.PermissionInterviewAssign,
+		enums.PermissionInterviewApprove,
+		enums.PermissionEvaluationAssign,
+	)
+}
+
+func CanManageInterviews(c *fiber.Ctx) bool {
+	return usersvc.PolicyServiceInstance.CanAny(CurrentUserID(c),
+		enums.PermissionRecruitmentManage,
+		enums.PermissionInterviewAssign,
+	)
+}
+
+func CanApproveInterviews(c *fiber.Ctx) bool {
+	return usersvc.PolicyServiceInstance.CanAny(CurrentUserID(c),
+		enums.PermissionRecruitmentManage,
+		enums.PermissionInterviewApprove,
+	)
+}
+
+func CanScoreInterviews(c *fiber.Ctx) bool {
+	return usersvc.PolicyServiceInstance.CanAny(CurrentUserID(c),
+		enums.PermissionRecruitmentManage,
+		enums.PermissionInterviewAssign,
+		enums.PermissionInterviewScore,
+	)
+}

@@ -5,17 +5,80 @@
             <h3 class="page-title">Interview Scheduling</h3>
             <p class="page-subtitle">Schedule and manage candidate interviews.</p>
         </div>
-        <button onclick="document.getElementById('schedule-interview-dialog').showModal()" class="btn btn-primary">
-            <i class="fa-solid fa-plus text-xs"></i> Schedule Interview
-        </button>
+        <div class="flex items-center gap-2">
+            {{if .CanManage}}
+            <button onclick="document.getElementById('add-round-dialog').showModal()" class="btn btn-ghost">
+                <i class="fa-solid fa-layer-group text-xs"></i> Add Round
+            </button>
+            {{end}}
+            {{if .CanSchedule}}
+            <button onclick="document.getElementById('schedule-interview-dialog').showModal()" class="btn btn-primary">
+                <i class="fa-solid fa-plus text-xs"></i> Schedule Interview
+            </button>
+            {{end}}
+        </div>
     </div>
 
-    <div class="table-container overflow-x-auto">
+    {{if .ReadOnly}}
+    <div class="card" style="border-left: 4px solid var(--rose-pine);">
+        <div class="card-body flex items-center gap-3">
+            <i class="fa-solid fa-eye" style="color: var(--rose-pine);"></i>
+            <p class="text-sm text-muted">You can view every interview schedule, but scheduling and editing are reserved for the hiring team.</p>
+        </div>
+    </div>
+    {{end}}
+
+    <form method="get" action="/pages/interviews" class="card">
+        <div class="card-body">
+            <div class="grid sm:grid-cols-2 lg:grid-cols-5 gap-3">
+                <div class="form-group">
+                    <label class="form-label" for="filter-posting">Job Posting</label>
+                    <select name="posting_id" id="filter-posting" class="form-select">
+                        <option value="">All postings</option>
+                        {{range .Postings}}<option value="{{.ID}}" {{if eq $.Filters.PostingID .ID}}selected{{end}}>{{.Title}}</option>{{end}}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="filter-round">Round</label>
+                    <select name="round_id" id="filter-round" class="form-select">
+                        <option value="">All rounds</option>
+                        {{range .Rounds}}<option value="{{.ID}}" data-posting="{{.JobPostingID}}" {{if eq $.Filters.RoundID .ID}}selected{{end}}>{{.Name}} — {{.PostingTitle}}</option>{{end}}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="filter-interviewer">Interviewer</label>
+                    <select name="interviewer_id" id="filter-interviewer" class="form-select">
+                        <option value="">Any interviewer</option>
+                        {{range .Workers}}<option value="{{.UserID}}" {{if eq $.Filters.InterviewerID .UserID}}selected{{end}}>{{.Name}}</option>{{end}}
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="filter-status">Status</label>
+                    <select name="status" id="filter-status" class="form-select">
+                        <option value="">Any status</option>
+                        <option value="scheduled" {{if eq .Filters.Status "scheduled"}}selected{{end}}>Scheduled</option>
+                        <option value="completed" {{if eq .Filters.Status "completed"}}selected{{end}}>Completed</option>
+                        <option value="cancelled" {{if eq .Filters.Status "cancelled"}}selected{{end}}>Cancelled</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="filter-search">Search</label>
+                    <input name="q" id="filter-search" value="{{.Filters.Search}}" class="form-input" placeholder="Candidate, round or location">
+                </div>
+            </div>
+            <div class="flex justify-end gap-2 mt-2">
+                <a href="/pages/interviews" class="btn btn-ghost">Clear</a>
+                <button type="submit" class="btn btn-primary"><i class="fa-solid fa-filter text-xs"></i> Apply filters</button>
+            </div>
+        </div>
+    </form>
+
+    <div class="table-container table-responsive table-wide">
         <table>
             <thead class="table-head"><tr>
                 <th>Candidate</th>
                 <th>Round</th>
-                <th>Interviewer</th>
+                <th>Interviewers</th>
                 <th>Scheduled</th>
                 <th>Duration</th>
                 <th>Location</th>
@@ -37,31 +100,292 @@
                     <td class="text-right">
                         {{if eq .Status "scheduled"}}
                             <a href="/pages/interviews/{{.ID}}/feedback" class="btn btn-sm" style="background: var(--rose-foam); color: white;">Feedback</a>
+                            {{if $.CanManage}}
                             <form style="display:inline" method="post" action="/pages/interviews/{{.ID}}/status" data-ajax>
                                 <input type="hidden" name="status" value="completed">
                                 <button type="submit" class="btn btn-sm btn-ghost"><i class="fa-solid fa-check"></i></button>
                             </form>
+                            {{end}}
                         {{else if eq .Status "completed"}}
                             <a href="/pages/interviews/{{.ID}}/feedback" class="btn btn-sm btn-ghost">View Feedback</a>
                         {{end}}
+                        {{if $.CanManage}}
                         <form data-confirm="Delete this interview?" style="display:inline" method="post" action="/pages/interviews/{{.ID}}/delete" data-ajax>
                             <button type="submit" class="btn btn-sm btn-ghost text-red-600"><i class="fa-solid fa-trash"></i></button>
                         </form>
+                        {{end}}
                     </td>
                 </tr>
                 {{else}}
-                <tr><td colspan="8" class="empty-state"><i class="fa-regular fa-calendar empty-state-icon"></i>No interviews scheduled yet.</td></tr>
+                <tr><td colspan="8" class="empty-state"><i class="fa-regular fa-calendar empty-state-icon"></i>No interviews match these filters.</td></tr>
                 {{end}}
             </tbody>
         </table>
     </div>
 
+    {{if .CanApprove}}
+    <div class="card-section">
+        <div class="page-header-left" style="padding: 1rem 1rem 0;">
+            <h3 class="page-title">Candidate Ranking</h3>
+            <p class="page-subtitle">Combined score of submitted interviewer reviews, ranked inside each job posting. A candidate can be hired as soon as at least one review is scored — no separate evaluation step is needed.</p>
+        </div>
+        <div class="table-responsive">
+            <table>
+                <thead class="table-head">
+                    <tr>
+                        <th>Rank</th>
+                        <th>Candidate</th>
+                        <th>Job Posting</th>
+                        <th>Combined Score</th>
+                        <th>Reviews</th>
+                        <th>Interviewers</th>
+                        <th>Rounds</th>
+                        <th>Decision</th>
+                        <th>Hire</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{range .Rankings}}
+                    <tr class="hover:bg-gray-50{{if .LatestInterviewID}} table-row-link{{end}}"{{if .LatestInterviewID}} data-href="/pages/interviews/{{.LatestInterviewID}}/feedback"{{end}}>
+                        <td><span class="badge {{if eq .Rank 1}}badge-active{{else}}badge-draft{{end}}">#{{.Rank}}</span></td>
+                        <td class="font-medium">{{.CandidateName}}</td>
+                        <td class="table-cell-muted">{{.PostingTitle}}</td>
+                        <td class="font-medium">{{printf "%.2f" .AverageScore}} / 10</td>
+                        <td class="text-sm">{{.CompletedReviews}} of {{.TotalInterviews}}</td>
+                        <td class="text-sm">{{.InterviewerCount}}</td>
+                        <td class="text-sm">{{.CompletedRounds}} of {{.TotalRounds}}</td>
+                        <td><span class="badge {{if eq .FinalDecision "hire"}}badge-success{{else if eq .FinalDecision "maybe"}}badge-warning{{else if eq .FinalDecision "in_progress"}}badge-info{{else if eq .FinalDecision "pending"}}badge-neutral{{else}}badge-danger{{end}}">{{.FinalDecision}}</span></td>
+                        <td>
+                            {{if or (eq .CandidateStatus "hired") (eq .CandidateStatus "rejected")}}
+                            <span class="text-sm text-muted">—</span>
+                            {{else if gt .CompletedReviews 0}}
+                            <a href="/pages/approvals" class="text-sm text-muted hover:underline">Hire from Approvals</a>
+                            {{else}}
+                            <span class="text-sm text-muted">Awaiting scores</span>
+                            {{end}}
+                        </td>
+                    </tr>
+                    {{else}}
+                    <tr><td colspan="9" class="empty-state"><i class="fa-solid fa-ranking-star empty-state-icon"></i>No candidates with interview scores are awaiting a hiring decision.</td></tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {{end}}
+
+    <div class="card-section">
+        <div class="page-header-left" style="padding: 1rem 1rem 0;">
+            <h3 class="page-title">Interview Rounds</h3>
+            <p class="page-subtitle">Rounds belong to a job posting. Create one here before scheduling an interview.</p>
+        </div>
+        <div class="table-responsive">
+            <table>
+                <thead class="table-head">
+                    <tr>
+                        <th>Round</th>
+                        <th>Job Posting</th>
+                        <th>Type</th>
+                        <th>Order</th>
+                        <th>Weight</th>
+                        <th>Score</th>
+                        <th>Questions</th>
+                        {{if $.CanManage}}<th>Actions</th>{{end}}
+                    </tr>
+                </thead>
+                <tbody>
+                    {{range .Rounds}}
+                    <tr>
+                        <td class="font-medium">{{.Name}}</td>
+                        <td class="table-cell-muted">{{.PostingTitle}}</td>
+                        <td class="text-sm">{{.RoundType}}</td>
+                        <td class="text-sm">#{{.RoundNumber}}</td>
+                        <td class="text-sm">{{.Weight}}</td>
+                        <td class="text-sm">{{.MaxScore}} · pass {{.PassScore}}</td>
+                        <td class="text-sm">
+                            {{if .TemplateName}}
+                                <p class="font-medium">{{.TemplateName}}</p>
+                                {{if .Sections}}
+                                <div class="flex flex-wrap gap-1 mt-1">
+                                    {{range .Sections}}<span class="badge badge-draft">{{.Name}}</span>{{end}}
+                                </div>
+                                {{else}}
+                                <span class="text-xs text-muted">No sections selected</span>
+                                {{end}}
+                            {{else}}
+                                <span class="text-xs text-muted">No template</span>
+                            {{end}}
+                        </td>
+                        {{if $.CanManage}}
+                        <td class="text-right whitespace-nowrap">
+                            <button type="button" class="btn btn-sm btn-ghost" onclick="editInterviewRound(this)"
+                                data-id="{{.ID}}" data-name="{{.Name}}" data-number="{{.RoundNumber}}" data-type="{{.RoundType}}"
+                                data-description="{{.Description}}" data-max-score="{{.MaxScore}}" data-pass-score="{{.PassScore}}" data-weight="{{.Weight}}">Edit</button>
+                            <form method="post" action="/pages/interview-rounds/{{.ID}}/delete" data-ajax style="display:inline;" onsubmit="return confirm('Remove this interview round?')">
+                                <button type="submit" class="btn btn-sm btn-ghost" style="color: var(--rose-love);">Remove</button>
+                            </form>
+                        </td>
+                        {{end}}
+                    </tr>
+                    {{else}}
+                    <tr><td colspan="{{if $.CanManage}}8{{else}}7{{end}}" class="empty-state"><i class="fa-solid fa-layer-group empty-state-icon"></i>No interview rounds yet. Add one to schedule interviews.</td></tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    {{if .CanManage}}
+    <dialog id="add-round-dialog" class="dialog" style="max-width: 36rem;">
+        <form class="dialog-body" style="border-radius: 1rem;" method="post" action="/pages/interview-rounds" data-ajax data-close-dialog>
+            <div><h3 class="dialog-title">Add Interview Round</h3><p class="mt-1 text-sm text-muted">Rounds are the stages a candidate goes through for a job posting.</p></div>
+            <div class="form-group">
+                <label class="form-label">Job Posting</label>
+                <select name="job_posting_id" required class="form-select">
+                    <option value="">Select job posting</option>
+                    {{range .Postings}}<option value="{{.ID}}">{{.Title}} — {{.PositionName}}</option>{{end}}
+                </select>
+            </div>
+            <div class="grid grid-cols-2 gap-4">
+                <div class="form-group"><label class="form-label">Round name</label><input name="name" required class="form-input" placeholder="e.g. Technical Interview"></div>
+                <div class="form-group"><label class="form-label">Order</label><input type="number" name="round_number" min="1" value="1" required class="form-input"></div>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Round type</label>
+                <select name="round_type" class="form-select">
+                    <option value="screening">Screening</option>
+                    <option value="technical" selected>Technical</option>
+                    <option value="behavioral">Behavioral</option>
+                    <option value="manager">Manager</option>
+                    <option value="final">Final</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Evaluation template</label>
+                <select name="evaluation_template_id" id="round-template" class="form-select">
+                    <option value="">No template</option>
+                    {{range .Templates}}<option value="{{.ID}}">{{.Name}}</option>{{end}}
+                </select>
+                <p class="text-xs text-muted mt-1">Pick a question bank, then choose only the sections this round should ask.</p>
+            </div>
+            <div class="form-group" id="round-sections-group" style="display: none;">
+                <label class="form-label">Sections for this round</label>
+                <div id="round-sections" style="max-height: 12rem; overflow-y: auto; border: 1px solid var(--rose-border); border-radius: 0.5rem; padding: 0.75rem;">
+                    {{range .Sections}}
+                    <label class="round-section-option flex items-center gap-2 text-sm" data-template="{{.EvaluationTemplateID}}" style="display: none;">
+                        <input type="checkbox" name="section_ids" value="{{.ID}}">
+                        <span>{{.Name}}</span>
+                    </label>
+                    {{else}}
+                    <p class="text-sm text-muted">No evaluation sections exist yet. Create a template first.</p>
+                    {{end}}
+                </div>
+                <p class="text-xs text-muted mt-1">Questions from these sections appear on this round's feedback form.</p>
+            </div>
+            <div class="form-group"><label class="form-label">Description</label><textarea name="description" rows="2" class="form-input" placeholder="Optional notes about what this round covers"></textarea></div>
+            <div class="grid grid-cols-3 gap-4">
+                <div class="form-group"><label class="form-label">Max score</label><input type="number" name="max_score" min="1" step="0.1" value="10" class="form-input"></div>
+                <div class="form-group"><label class="form-label">Pass score</label><input type="number" name="pass_score" min="0" step="0.1" value="6" class="form-input"></div>
+                <div class="form-group"><label class="form-label">Weight</label><input type="number" name="weight" min="0.1" step="0.1" value="1" class="form-input"></div>
+            </div>
+            <div class="dialog-footer" style="border-top: 1px solid #f1f5f9; padding-top: 1rem;"><button type="button" onclick="this.closest('dialog').close()" class="btn btn-ghost">Cancel</button><button type="submit" class="btn btn-love">Add round</button></div>
+        </form>
+    </dialog>
+    <dialog id="edit-round-dialog" class="dialog" style="max-width: 36rem;">
+        <form id="edit-round-form" class="dialog-body" style="border-radius: 1rem;" method="post" data-ajax data-close-dialog>
+            <div><h3 class="dialog-title">Edit Interview Round</h3><p class="mt-1 text-sm text-muted">Changes to round weight affect candidate score calculations.</p></div>
+            <div class="grid grid-cols-2 gap-4">
+                <div class="form-group"><label class="form-label">Round name</label><input id="edit-round-name" name="name" required class="form-input"></div>
+                <div class="form-group"><label class="form-label">Order</label><input id="edit-round-number" type="number" name="round_number" min="1" required class="form-input"></div>
+            </div>
+            <div class="form-group"><label class="form-label">Round type</label>
+                <select id="edit-round-type" name="round_type" class="form-select">
+                    <option value="screening">Screening</option><option value="technical">Technical</option><option value="behavioral">Behavioral</option><option value="manager">Manager</option><option value="final">Final</option>
+                </select>
+            </div>
+            <div class="form-group"><label class="form-label">Description</label><textarea id="edit-round-description" name="description" rows="2" class="form-input"></textarea></div>
+            <div class="grid grid-cols-3 gap-4">
+                <div class="form-group"><label class="form-label">Max score</label><input id="edit-round-max-score" type="number" name="max_score" min="1" step="0.1" required class="form-input"></div>
+                <div class="form-group"><label class="form-label">Pass score</label><input id="edit-round-pass-score" type="number" name="pass_score" min="0" step="0.1" required class="form-input"></div>
+                <div class="form-group"><label class="form-label">Weight</label><input id="edit-round-weight" type="number" name="weight" min="0.1" step="0.1" required class="form-input"></div>
+            </div>
+            <div class="dialog-footer"><button type="button" onclick="this.closest('dialog').close()" class="btn btn-ghost">Cancel</button><button type="submit" class="btn btn-love">Save changes</button></div>
+        </form>
+    </dialog>
+    {{end}}
+
+    {{if .CanSchedule}}
     <dialog id="schedule-interview-dialog" class="dialog" style="max-width: 36rem;">
         <form class="dialog-body" style="border-radius: 1rem;" method="post" action="/pages/interviews" data-ajax data-close-dialog>
-            <div><h3 class="dialog-title">Schedule Interview</h3></div>
-            <div class="form-group"><label class="form-label">Candidate</label><select name="candidate_id" required class="form-select"><option value="">Select candidate</option>{{range .Candidates}}<option value="{{.ID}}">{{.FullName}} - {{.PostingTitle}}</option>{{end}}</select></div>
-            <div class="form-group"><label class="form-label">Interview Round</label><select name="interview_round_id" required class="form-select"><option value="">Select round</option>{{range .Rounds}}<option value="{{.ID}}">{{.Name}} ({{.RoundType}})</option>{{end}}</select></div>
-            <div class="form-group"><label class="form-label">Interviewer</label><select name="interviewer_id" required class="form-select"><option value="">Select interviewer</option>{{range .Workers}}<option value="{{.UserID}}">{{.Name}} ({{.EmployeeCode}})</option>{{end}}</select></div>
+            <div><h3 class="dialog-title">Schedule Interview</h3><p class="mt-1 text-sm text-muted">Pick a job posting group, then tick one or more candidates from that group to schedule them together.</p></div>
+            <div class="form-group">
+                <label class="form-label" for="interview-candidate-group">Candidate group (job posting)</label>
+                <select id="interview-candidate-group" class="form-select">
+                    <option value="">Select job posting first</option>
+                    {{range .CandidateGroups}}<option value="{{.PostingID}}">{{.PostingTitle}} ({{len .Candidates}})</option>{{end}}
+                </select>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Candidates</label>
+                <div style="max-height: 12rem; overflow-y: auto; border: 1px solid var(--rose-border); border-radius: 0.5rem; padding: 0.75rem;">
+                    <p id="candidate-group-empty" class="text-sm text-muted">Select a job posting group to see its candidates.</p>
+                    {{range .CandidateGroups}}
+                    <div class="candidate-group" data-candidate-group="{{.PostingID}}" style="display: none;">
+                        <label class="flex items-center gap-2 text-sm font-semibold" style="margin-bottom: 0.5rem;">
+                            <input type="checkbox" data-select-all-candidates>
+                            <span>Select all {{len .Candidates}} in this group</span>
+                        </label>
+                        <div class="grid grid-cols-2 gap-2">
+                            {{range .Candidates}}
+                            <label class="flex items-center gap-2 text-sm">
+                                <input type="checkbox" name="candidate_ids" value="{{.ID}}">
+                                <span>{{.FullName}}</span>
+                            </label>
+                            {{end}}
+                        </div>
+                    </div>
+                    {{else}}
+                    <p class="text-sm text-muted">No candidates are available to you.</p>
+                    {{end}}
+                </div>
+                <p class="text-xs text-muted mt-1">Selecting a different group clears ticks from the previous group so the round always matches.</p>
+            </div>
+            <div class="form-group">
+                <label class="form-label">Interview Round</label>
+                <select name="interview_round_id" id="interview-round" required class="form-select">
+                    <option value="">Select round</option>
+                    {{range .Rounds}}<option value="{{.ID}}" data-posting="{{.JobPostingID}}">{{.Name}} ({{.RoundType}}) — {{.PostingTitle}}</option>{{end}}
+                </select>
+                <p class="text-xs text-muted mt-1">Rounds are limited to the selected candidate group's job posting.</p>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="interviewer-group">Interview panel</label>
+                <select id="interviewer-group" class="form-select" style="margin-bottom: 0.5rem;">
+                    <option value="">Select group first</option>
+                    {{range .InterviewerGroups}}<option value="{{.Department}}">{{.Department}} ({{len .Workers}})</option>{{end}}
+                </select>
+                <div style="max-height: 12rem; overflow-y: auto; border: 1px solid var(--rose-border); border-radius: 0.5rem; padding: 0.75rem;">
+                    <p id="interviewer-group-empty" class="text-sm text-muted">Select a group to see its interviewers.</p>
+                    <div class="grid grid-cols-2 gap-2">
+                        {{range .InterviewerGroups}}
+                        <div class="interviewer-group" data-interviewer-group="{{.Department}}" style="display: none; grid-column: 1 / -1;">
+                            <p class="text-xs font-semibold" style="color: var(--rose-pine);">{{.Department}}</p>
+                            <div class="grid grid-cols-2 gap-2">
+                                {{range .Workers}}
+                                <label class="flex items-center gap-2 text-sm">
+                                    <input type="checkbox" name="interviewer_ids" value="{{.UserID}}">
+                                    <span>{{.Name}} <span class="text-muted">({{.EmployeeCode}})</span></span>
+                                </label>
+                                {{end}}
+                            </div>
+                        </div>
+                        {{else}}
+                        <p class="text-sm text-muted">No interviewers are available.</p>
+                        {{end}}
+                    </div>
+                </div>
+                <p class="text-xs text-muted mt-1">Pick a group first, then tick one or more interviewers. Every selected interviewer scores the candidates independently.</p>
+            </div>
             <div class="grid grid-cols-2 gap-4">
                 <div class="form-group"><label class="form-label">Date & Time</label><input type="datetime-local" name="scheduled_at" required class="form-input"></div>
                 <div class="form-group"><label class="form-label">Duration (min)</label><input type="number" name="duration_minutes" value="60" class="form-input"></div>
@@ -72,5 +396,132 @@
             <div class="dialog-footer" style="border-top: 1px solid #f1f5f9; padding-top: 1rem;"><button type="button" onclick="this.closest('dialog').close()" class="btn btn-ghost">Cancel</button><button type="submit" class="btn btn-love">Schedule</button></div>
         </form>
     </dialog>
+    {{end}}
+
+    <script>
+        // The Add Round dialog lists every section in the system once; narrow
+        // it to the selected template so a template's sections can be split
+        // across different rounds without showing unrelated questions.
+        (function () {
+            var templateSelect = document.getElementById('round-template');
+            var sectionsGroup = document.getElementById('round-sections-group');
+            var sectionOptions = document.querySelectorAll('.round-section-option');
+            if (!templateSelect || !sectionsGroup) return;
+
+            function refreshSections() {
+                var templateID = templateSelect.value;
+                sectionsGroup.style.display = templateID ? '' : 'none';
+                sectionOptions.forEach(function (option) {
+                    var visible = option.dataset.template === templateID;
+                    option.style.display = visible ? '' : 'none';
+                    if (!visible) {
+                        var checkbox = option.querySelector('input');
+                        if (checkbox) checkbox.checked = false;
+                    }
+                });
+            }
+
+            templateSelect.addEventListener('change', refreshSections);
+            refreshSections();
+        })();
+
+        // Scheduling groups candidates by job posting. Only the chosen group's
+        // candidates are shown, and its select-all box ticks every one of them.
+        (function () {
+            var groupSelect = document.getElementById('interview-candidate-group');
+            var groups = document.querySelectorAll('[data-candidate-group]');
+            var empty = document.getElementById('candidate-group-empty');
+            var roundSelect = document.getElementById('interview-round');
+            if (!groupSelect || !groups.length) return;
+
+            function refreshCandidates() {
+                var postingID = groupSelect.value;
+                var any = false;
+                groups.forEach(function (group) {
+                    var visible = postingID !== '' && group.dataset.candidateGroup === postingID;
+                    group.style.display = visible ? '' : 'none';
+                    if (visible) {
+                        any = true;
+                    } else {
+                        // Drop ticks from hidden groups: one round only fits a
+                        // single job posting.
+                        group.querySelectorAll('input[type="checkbox"]').forEach(function (box) {
+                            box.checked = false;
+                        });
+                    }
+                });
+                if (empty) empty.style.display = any ? 'none' : '';
+
+                if (roundSelect) {
+                    Array.from(roundSelect.options).forEach(function (option) {
+                        if (!option.value) return;
+                        var matches = postingID === '' || option.dataset.posting === postingID;
+                        option.hidden = !matches;
+                        option.disabled = !matches;
+                    });
+                    var current = roundSelect.options[roundSelect.selectedIndex];
+                    if (current && current.disabled) roundSelect.value = '';
+                }
+            }
+
+            groupSelect.addEventListener('change', refreshCandidates);
+
+            groups.forEach(function (group) {
+                var selectAll = group.querySelector('[data-select-all-candidates]');
+                if (!selectAll) return;
+                selectAll.addEventListener('change', function () {
+                    group.querySelectorAll('input[name="candidate_ids"]').forEach(function (box) {
+                        box.checked = selectAll.checked;
+                    });
+                });
+                group.querySelectorAll('input[name="candidate_ids"]').forEach(function (box) {
+                    box.addEventListener('change', function () {
+                        var boxes = Array.from(group.querySelectorAll('input[name="candidate_ids"]'));
+                        selectAll.checked = boxes.every(function (item) { return item.checked; });
+                        selectAll.indeterminate = !selectAll.checked && boxes.some(function (item) { return item.checked; });
+                    });
+                });
+            });
+
+            refreshCandidates();
+        })();
+
+        // The panel checklist is grouped by department. Pick a group first so
+        // only that group's interviewers are shown; ticks already made in
+        // another group stay selected and are still submitted.
+        (function () {
+            var groupSelect = document.getElementById('interviewer-group');
+            var groups = document.querySelectorAll('[data-interviewer-group]');
+            var empty = document.getElementById('interviewer-group-empty');
+            if (!groupSelect) return;
+
+            function refreshGroups() {
+                var chosen = groupSelect.value;
+                var any = false;
+                groups.forEach(function (group) {
+                    var visible = chosen !== '' && group.dataset.interviewerGroup === chosen;
+                    group.style.display = visible ? '' : 'none';
+                    if (visible) any = true;
+                });
+                if (empty) empty.style.display = any ? 'none' : '';
+            }
+
+            groupSelect.addEventListener('change', refreshGroups);
+            refreshGroups();
+        })();
+
+        function editInterviewRound(button) {
+            var form = document.getElementById('edit-round-form');
+            form.action = '/pages/interview-rounds/' + button.dataset.id + '/update';
+            document.getElementById('edit-round-name').value = button.dataset.name;
+            document.getElementById('edit-round-number').value = button.dataset.number;
+            document.getElementById('edit-round-type').value = button.dataset.type;
+            document.getElementById('edit-round-description').value = button.dataset.description;
+            document.getElementById('edit-round-max-score').value = button.dataset.maxScore;
+            document.getElementById('edit-round-pass-score').value = button.dataset.passScore;
+            document.getElementById('edit-round-weight').value = button.dataset.weight;
+            document.getElementById('edit-round-dialog').showModal();
+        }
+    </script>
 </div>
 {{end}}

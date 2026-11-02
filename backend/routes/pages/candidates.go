@@ -9,6 +9,8 @@ import (
 func registerCandidatePages(pages fiber.Router, h *candidate.CandidateHandler) {
 	pages.Get("/candidates", h.Candidates)
 	pages.Post("/candidates", h.CreateCandidate)
+	pages.Post("/candidates/:id/status", h.UpdateCandidateStatus)
+	pages.Post("/candidates/:id/contact", h.LogContact)
 	pages.Post("/candidates/:id/assign-eval", h.AssignCandidateEvaluation)
-	pages.Post("/candidates/:id/hire", h.HireCandidate)
+	pages.Post("/candidates/:id/schedule-interview", h.ScheduleCandidateInterview)
 }

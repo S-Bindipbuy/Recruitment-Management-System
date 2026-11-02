@@ -214,6 +214,13 @@ function sendForm(form) {
                 const status = form.querySelector('[data-form-status]');
                 if (status) status.textContent = form.dataset.formStatus;
             }
+            // Some actions return JSON and only change data other parts of the
+            // page display (scheduling an interview, for example). Reload the
+            // current page so those rows show the new state.
+            if (form.dataset.reload) {
+                loadPage(currentPageTarget() || 'dashboard');
+                return;
+            }
             // GET forms (filters) put their values in the address bar so the
             // filtered view can be bookmarked and restored on back/forward.
             if (method === 'GET') {
@@ -270,6 +277,16 @@ function sendRequest(el) {
         });
 }
 
+// Reload the page currently on screen. A Refresh control cannot use normal
+// navigation: its URL is already the current URL, so navigation would treat it
+// as a no-op. Ask the browser to skip its cache so the latest server data is
+// always rendered.
+function refreshCurrentPage() {
+    const path = currentPageTarget();
+    if (!path) return;
+    loadPage(path, { cache: 'no-store' });
+}
+
 // Load a page fragment into #page (used for navigation and history).
 function loadPage(pathWithQuery, options = {}) {
     if (!getAuthToken()) {
@@ -279,8 +296,10 @@ function loadPage(pathWithQuery, options = {}) {
     const targetSelector = options.target || '#page';
     const target = document.querySelector(targetSelector) || document.getElementById('page');
     const url = '/pages/' + pathWithQuery;
+    const init = { method: 'GET' };
+    if (options.cache) init.cache = options.cache;
 
-    emsFetch(url, { method: 'GET' })
+    emsFetch(url, init)
         .then(res => handleResponse(res, { target, swap: options.swap }))
         .catch(err => {
             if (err.message !== 'Unauthorized') {
@@ -319,6 +338,27 @@ document.addEventListener('click', function(e) {
     if (requestEl) {
         e.preventDefault();
         sendRequest(requestEl);
+        return;
+    }
+
+    const rowLink = e.target.closest('tr[data-href]');
+    if (rowLink && !e.target.closest('a, button, input, select, textarea, label, summary, dialog, [data-request], [data-close-dialog]')) {
+        const href = rowLink.getAttribute('data-href');
+        if (!href || !href.startsWith('/pages/')) return;
+        if (window.getSelection && String(window.getSelection())) return;
+        e.preventDefault();
+        if (href === location.pathname + location.search) return;
+        history.pushState({ ems: true }, '', href);
+        showApp();
+        loadPage(href.slice('/pages/'.length));
+        return;
+    }
+
+    // Explicit Refresh controls must re-fetch even though the URL is unchanged.
+    const refreshEl = e.target.closest('[data-refresh]');
+    if (refreshEl) {
+        e.preventDefault();
+        refreshCurrentPage();
         return;
     }
 

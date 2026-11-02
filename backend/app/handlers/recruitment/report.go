@@ -25,7 +25,7 @@ func (h *ReportHandler) AllCandidateSummaries(c *fiber.Ctx) error {
 }
 
 func (h *ReportHandler) InterviewerActivity(c *fiber.Ctx) error {
-	activities, err := recsvc.InterviewServiceInst.GetInterviewerActivity()
+	activities, err := recsvc.InterviewServiceInst.GetInterviewerActivity(0)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{"error": "Failed to fetch activity"})
 	}

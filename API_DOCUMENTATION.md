@@ -129,27 +129,90 @@ Admin-only endpoints (require a user holding the `admin` role).
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/api/job-postings/:posting_id/rounds` | List rounds for a posting |
-| POST | `/api/interview-rounds` | Create interview round |
+| POST | `/api/interview-rounds` | Create interview round (`weight` optional, defaults to `1`) |
 | DELETE | `/api/interview-rounds/:id` | Delete interview round |
+
+`weight` controls how much a round counts in a candidate's weighted average.
+A missing or non-positive `weight` is stored as `1`.
+
+A round can draw its questions from an evaluation template. Send
+`evaluation_template_id` plus `section_ids` (an array of sections from that
+template) to split a large template across rounds: a screening round asks only
+its sections, a technical round only its own. When a template is named at least
+one valid section is required; sections from another template are ignored.
 
 ## Interviews
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/interviews` | List interviews (candidate/round/interviewer names) |
+| GET | `/api/interviews` | List interviews (scoped to the caller's role) |
 | GET | `/api/interviews/:id` | Get interview by ID |
-| POST | `/api/interviews` | Schedule interview |
+| POST | `/api/interviews` | Schedule interview(s) (`candidate_ids` and `interviewer_ids` arrays) |
 | PUT | `/api/interviews/:id/status` | Update interview status |
 | DELETE | `/api/interviews/:id` | Delete interview |
 | GET | `/api/interviews/candidate/:candidate_id` | List interviews by candidate |
+
+Interviewers are employees flagged with `can_interview`. They log in to score
+their own panel feedback; HR can also enter a score on a panel member's behalf.
+An interview can have a panel: send `interviewer_ids` with every selected user
+id. The legacy single `interviewer_id` field is still accepted and is treated as
+a one-person panel. The first id is stored as the lead interviewer for legacy
+attribution. HR schedules the interview and the panel members record their
+per-question scores.
+
+To schedule a whole job-posting group in one call, send `candidate_ids` with
+every selected candidate instead of `candidate_id`. Duplicates are removed and
+one interview is created per candidate. The round must belong to every selected
+candidate's posting, so all candidates in a batch must come from the same group.
+A failed creation stops the batch.
+
+Interview access is scoped by permission:
+
+- `interview.view` — the caller sees only interviews they sit on and interviews
+  for candidates assigned to them.
+- `interview.score` — the view scope plus scoring their own panel feedback.
+- `interview.assign` — create/edit/delete schedules, panels and rounds, and see
+  every schedule.
+- `interview.approve` — see every schedule and the combined candidate ranking.
+- `recruitment.manage` implies all four.
+- `evaluation.assign` additionally grants a read-only view of every schedule;
+  `evaluation.evaluate` lets an assigned evaluator schedule interviews only for
+  the candidates assigned to them.
 
 ## Interview Feedback
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/interviews/:interview_id/feedback` | Get feedback for an interview |
-| POST | `/api/interviews/:interview_id/feedback` | Submit feedback |
-| PUT | `/api/interview-feedback/:id` | Update feedback |
+| GET | `/api/interviews/:interview_id/feedback` | List feedback rows (own row unless the caller can view all) |
+| POST | `/api/interviews/:interview_id/feedback` | Submit feedback for one panel member |
+| PUT | `/api/interview-feedback/:id` | Update a feedback row |
+
+Each panel member keeps their own feedback row, so an interview has one score
+per interviewer. The table is unique on `(interview_id, interviewer_id)`.
+
+A feedback row separates two people:
+
+- `interviewer_id` — the panel member the score belongs to.
+- `recorded_by_user_id` / `recorded_by_name` — the user who entered the
+  score. A manager can enter it on the interviewer's behalf; an interviewer can
+  only write their own row.
+
+When the round has a template, the feedback form shows the questions from the
+sections assigned to that round. Each answer is stored against the feedback
+row and keyed by question id, so re-saving updates the same answer. Every
+question also carries its own 0-10 score; rating questions use the rating
+itself, while text, number, and yes/no questions get a separate score. The
+feedback row's overall `score` is calculated as the weighted average of the
+question scores (`sum(question score * question.weight) / sum(question.weight)`)
+and still drives the candidate's weighted round average. A round without
+questions keeps the single overall score field.
+
+The JSON `POST` body contains `interview_id`, an optional `interviewer_id`,
+`score`, `recommendation`, `strengths`, `weaknesses`, and `comments`. The web
+feedback form derives `score` from the per-question scores; API clients may
+still send it directly. Without `interviewer_id` the row is attributed to the
+authenticated user. A repeat submission updates that interviewer's existing
+row. `submitted_at` is set on every create and update.
 
 ## Reports
 
@@ -160,10 +223,15 @@ Admin-only endpoints (require a user holding the `admin` role).
 | GET | `/api/reports/interviewer-activity` | Interviewer activity report |
 | GET | `/api/reports/hiring-decisions` | Hiring decisions report |
 
-> Note: the candidate report queries join `candidates.position_id`, a column the
-> current schema does not have (candidates carry `job_posting_id`); those
-> endpoints return an error until the reports are reworked. The SQL lives in
-> `backend/app/repositories/recruitment/interview_feedback.go`.
+Candidate summaries are grouped per posting and score each candidate with a
+weighted average (`sum(score * round.weight) / sum(round.weight)`). Each row
+also includes `total_score`, the raw sum of submitted interviewer scores, along
+with `job_posting_id`, `completed_rounds`, `total_rounds`, and `rank`.
+The decision is `pending` when nothing is reviewed, `in_progress` while active
+rounds are still missing reviews, then `hire` / `maybe` / `reject` from the
+weighted average. Candidates receive a rank after their first completed
+review; hiring is available then and does not wait for remaining panel reviews
+or rounds. Ties are ordered by weighted average and review count.
 
 ## Candidates
 
@@ -173,8 +241,11 @@ Admin-only endpoints (require a user holding the `admin` role).
 | POST | `/api/candidates` | Create candidate (multipart: details + CV file) |
 | GET | `/api/candidates/:id/cv` | Download candidate CV |
 
-Hiring (accepting a candidate as a worker) is done from the pages UI:
-`POST /pages/candidates/:id/hire`.
+Hiring (accepting a candidate as an employee) is done from the Candidate
+Ranking on the Approvals page: `POST /pages/approvals/candidates/:id/accept`.
+At least one interview review must be scored. It creates an employee
+record without a login; the system is HR-operated and employees do not need
+accounts. The Candidates listing no longer offers the accept action.
 
 ## Evaluation Periods
 
@@ -245,15 +316,6 @@ Hiring (accepting a candidate as a worker) is done from the pages UI:
 | POST | `/api/evaluation-comments` | Create comment |
 | GET | `/api/evaluation-assignments/:assignment_id/comments` | List comments for assignment |
 
-## Evaluation Approvals
-
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| GET | `/api/evaluation-approvals/pending` | List pending approvals |
-| POST | `/api/evaluation-approvals` | Create approval request |
-| POST | `/api/evaluation-approvals/:id/approve` | Approve evaluation |
-| POST | `/api/evaluation-approvals/:id/reject` | Reject evaluation |
-
 ## Audit Logs
 
 | Method | Endpoint | Description |
@@ -283,7 +345,7 @@ frontend turns them into a toast or an in-page message.
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/pages` · `/pages/dashboard` | Dashboard with stats for the current user |
+| GET | `/pages` · `/pages/dashboard` | Dashboard with stats for the current user, plus a Top Candidates shortlist for interview approvers |
 
 ## Employees
 
@@ -335,10 +397,12 @@ only shown to admins.
 | POST | `/pages/roles/:id/permissions` | Set role permissions (`permission_id[]`) |
 
 Role permissions are picked per **feature area** (General, Organization,
-Recruitment, Evaluation, Analytics, Administration) using an **access level**
-dropdown: No access / View only / Manage / Full control / Custom. Expanding
-"Customize individual permissions" reveals the raw permission checkboxes for
-fine-tuning. The Evaluation area offers dedicated levels: **Evaluate (fill my
+Recruitment, Interviews, Evaluation, Analytics, Administration) using an
+**access level** dropdown: No access / View only / Manage / Full control /
+Custom. Expanding "Customize individual permissions" reveals the raw permission
+checkboxes for fine-tuning. The Interviews area offers **View my schedule**,
+**Interviewer (view + score)**, **Manage schedules and approve**, and **Full
+control**. The Evaluation area offers dedicated levels: **Evaluate (fill my
 assigned)**, **Assign and manage**, and **Full control**.
 
 | Method | Endpoint | Description |
@@ -353,11 +417,16 @@ assigned)**, **Assign and manage**, and **Full control**.
 |--------|----------|-------------|
 | GET | `/pages/candidates` | Candidates page |
 | POST | `/pages/candidates` | Create candidate with CV upload |
+| POST | `/pages/candidates/:id/status` | Move candidate through the pipeline (rejection requires a reason) |
+| POST | `/pages/candidates/:id/contact` | Log a contact attempt and optional follow-up date |
 | POST | `/pages/candidates/:id/assign-eval` | Assign evaluation to candidate |
-| POST | `/pages/candidates/:id/hire` | Accept candidate: creates active user + worker record |
 
-Hiring requires a rating of 1–5 and a temporary password (min 8 characters);
-the new account gets the position from the candidate's job posting.
+Hiring requires an interview rating of 1–5 and uses the candidate's combined interview score.
+No separate candidate evaluation step or approval request is required: interview scoring
+automatically evaluates the candidate. The employee record uses the position from the
+candidate's job posting and is created in the same transaction as the `hired` status change.
+The Hire action is available to approvers on the Approvals page's Candidate Ranking table
+after at least one review is scored. Candidate and interview pages do not provide hiring actions.
 
 ## Evaluations
 
@@ -366,6 +435,10 @@ the new account gets the position from the candidate's job posting.
 | GET | `/pages/evaluations` | Periods, templates, and the current user's assignments |
 | POST | `/pages/evaluations/assignments` | Create assignment |
 | POST | `/pages/evaluations/:id/start` | Start assignment |
+
+The Evaluations page is a status and results list; it does not provide actions
+to fill an evaluation or score an interview. The routes documented below remain
+available to their authorized callers.
 
 Assignment validation: period/template must exist, template must be active, evaluator ≠ evaluatee, and both must be selected (active) workers.
 
@@ -386,14 +459,8 @@ An assignment can be started, filled and submitted by either:
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/pages/approvals` | Pending approvals for the current user + request form data |
-| POST | `/pages/approvals` | Request approval for an assignment from a selected worker |
-| POST | `/pages/approvals/:id/approve` | Approve (only the assigned approver) |
-| POST | `/pages/approvals/:id/reject` | Reject (only the assigned approver); sends the evaluation back to pending |
-
-Approval flow: submitting an evaluation auto-creates a level-1 approval request for the evaluator.
-Approving completes the assignment; rejecting resets it to pending so the evaluator can revise and resubmit,
-which creates a fresh approval request.
+| GET | `/pages/approvals` | Candidate ranking and hiring actions. Accepts `?job_posting_id=` to filter candidates by posting |
+| POST | `/pages/approvals/candidates/:id/accept` | Hire a candidate after at least one interview review has been scored |
 
 ## Evaluation Periods
 
@@ -438,7 +505,7 @@ The order is period → template → scope → review.
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/pages/reports` | Results per reviewed assignment + average score per department |
+| GET | `/pages/reports` | Results per reviewed assignment, average score per department, and the candidate ranking shared with the Interviews page |
 | GET | `/pages/recruitment-reports` | Recruitment analytics (candidate summaries, interviewer activity, hiring decisions) |
 
 ## Job Postings
@@ -470,12 +537,21 @@ Same shape as the cycle wizard: one decision per screen.
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/pages/interviews` | Interview scheduling page |
-| POST | `/pages/interviews` | Schedule interview |
+| GET | `/pages/interviews` | Interview scheduling page with filters, round setup and (for approvers) the combined candidate ranking |
+| POST | `/pages/interviews` | Schedule interview(s) for one job-posting group (`candidate_ids[]`) |
+| POST | `/pages/interview-rounds` | Create an interview round for a job posting (template + section split) |
+| POST | `/pages/interview-rounds/:id/update` | Edit round name, order, type, description, and score settings |
+| POST | `/pages/interview-rounds/:id/delete` | Remove a round that has no scheduled interviews |
 | POST | `/pages/interviews/:id/status` | Update interview status |
 | POST | `/pages/interviews/:id/delete` | Delete interview |
-| GET | `/pages/interviews/:id/feedback` | Interview feedback form |
-| POST | `/pages/interviews/:id/feedback` | Submit interview feedback |
+| GET | `/pages/interviews/:id/feedback` | Interview feedback form (`?interviewer_id=` selects a panel member) |
+| POST | `/pages/interviews/:id/feedback` | Submit one panel member's feedback |
+
+The scheduling dialog asks for a job-posting group first, then lists that
+group's candidates with a per-group select-all, so one submit can book the whole
+group. The panel picker works the same way by department. Users with
+`evaluation.assign` see every schedule read-only; approvers additionally see the
+candidate ranking built from the average of each interviewer's score.
 
 ---
 
@@ -491,7 +567,7 @@ Same shape as the cycle wizard: one decision per screen.
 - `/jobs*` endpoints: public, no authentication required.
 - Worker selection rule: evaluators, evaluatees, approvers, and new employees must always be chosen from
   active workers via dropdowns; arbitrary or hardcoded IDs are rejected server-side.
-- Approve/reject are restricted to the approval's assigned approver and only work while it is still pending.
+- Candidate hiring is restricted to users with candidate approval or recruitment management permission and requires a scored interview.
 - Sidebar navigation is filtered by permission: links with `data-admin` (Users/Roles/Permissions) are hidden
   from non-admins, and other links require their matching permission level to be visible.
 - Not registered, although the code exists: the skills endpoints (`app/handlers/recruitment/skill.go`)

@@ -6,6 +6,7 @@ import (
 	evalmodel "ems/app/models/evaluation"
 	evalsvc "ems/app/services/evaluation"
 	usersvc "ems/app/services/user"
+	"errors"
 	"github.com/gofiber/fiber/v2"
 	"time"
 )
@@ -93,6 +94,7 @@ func (h *EvaluationAssignmentHandler) Create(c *fiber.Ctx) error {
 	// cannot accept something the dialog would reject.
 	assignment, err := evalsvc.AssignmentServiceInstance.CreateForCandidate(
 		req.EvaluationPeriodID, req.EvaluationTemplateID, req.EvaluatorID, req.CandidateID, dueDate,
+		c.Locals("user_id").(int64),
 	)
 	if err != nil {
 		status := fiber.StatusInternalServerError
@@ -116,6 +118,11 @@ func (h *EvaluationAssignmentHandler) Start(c *fiber.Ctx) error {
 		return err
 	}
 	if err := evalsvc.AssignmentServiceInstance.Start(int64(id)); err != nil {
+		if errors.Is(err, evalsvc.ErrInterviewsIncomplete) {
+			return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+				"error": err.Error(),
+			})
+		}
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 			"error": "Failed to start evaluation",
 		})

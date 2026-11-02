@@ -17,6 +17,7 @@
                     <th>#</th>
                     <th>Evaluator</th>
                     <th>Evaluatee</th>
+                    <th>Combined Interview Score</th>
                     <th>Due Date</th>
                     <th>Status</th>
                     <th>Result</th>
@@ -29,10 +30,20 @@
                 <tr>
                     <td class="table-cell-bold">#{{.Assignment.ID}}</td>
                     <td class="table-cell-muted">{{.EvaluatorName}}</td>
-                    <td class="table-cell-muted">{{.EvaluateeName}}</td>
+                    <td class="table-cell-muted">
+                        {{.EvaluateeName}}
+                        {{if .RoundName}}<span class="text-xs text-muted block">Round: {{.RoundName}}</span>{{end}}
+                    </td>
+                    <td class="text-sm">
+                        {{if .InterviewScoreAvailable}}
+                        <span class="font-semibold">{{printf "%.2f" .InterviewScore}} / 10</span>
+                        <span class="text-xs text-muted block">{{.CompletedReviews}} of {{.TotalInterviews}} interviews scored</span>
+                        <span class="text-xs text-muted block">Total interviewer score: {{printf "%.2f" .InterviewScoreTotal}}</span>
+                        {{else}}<span class="text-sm text-muted">—</span>{{end}}
+                    </td>
                     <td class="text-sm text-muted">{{if .Assignment.DueDate}}{{.Assignment.DueDate.Format "2006-01-02"}}{{else}}-{{end}}</td>
                     <td>
-                        <span class="badge {{if eq .Assignment.Status "completed"}}badge-active{{else if eq .Assignment.Status "started"}}badge-warning{{else if eq .Assignment.Status "submitted"}}badge-info{{else}}badge-danger{{end}}">{{.Assignment.Status}}</span>
+                        <span class="badge {{if or (eq .Assignment.Status "completed") (eq .Assignment.Status "submitted")}}badge-active{{else if eq .Assignment.Status "started"}}badge-warning{{else}}badge-danger{{end}}">{{if eq .Assignment.Status "submitted"}}completed{{else}}{{.Assignment.Status}}{{end}}</span>
                     </td>
                     <td>
                         {{if .Result}}
@@ -40,14 +51,28 @@
                         {{else}}<span class="text-sm text-muted">-</span>{{end}}
                     </td>
                     <td>
-                        {{if eq .Assignment.Status "pending"}}
-                        <button class="btn btn-sm btn-foam" type="button" data-url="/pages/evaluations/{{.Assignment.ID}}/start" data-request="POST">Start</button>
+                        {{if .IsRound}}
+                            {{if eq .Assignment.Status "completed"}}
+                            <span class="badge badge-active"><i class="fa-solid fa-check text-xs"></i> Completed</span>
+                            {{else}}
+                            <span class="text-sm text-muted">Interview in progress</span>
+                            {{end}}
+                        {{else if eq .Assignment.Status "pending"}}
+                        {{if .InterviewReady}}
+                        <span class="text-sm text-muted">Ready to evaluate</span>
+                        {{else}}
+                        <span class="text-sm text-muted">Complete all interview rounds first</span>
+                        {{end}}
                         {{else if eq .Assignment.Status "started"}}
-                        <a href="/pages/evaluation-fill/{{.Assignment.ID}}" class="btn btn-sm btn-primary">Fill Evaluation</a>
+                        <span class="text-sm text-muted">Evaluation in progress</span>
                         {{else if eq .Assignment.Status "submitted"}}
-                        <span class="text-sm text-muted">Awaiting approval</span>
+                        <span class="badge badge-active">Completed</span>
                         {{else if eq .Assignment.Status "completed"}}
+                        {{if .IsRound}}
+                        <span class="badge badge-active"><i class="fa-solid fa-check text-xs"></i> Completed</span>
+                        {{else}}
                         <span class="badge badge-active"><i class="fa-solid fa-check text-xs"></i> Approved</span>
+                        {{end}}
                         {{else}}
                         <span class="text-sm text-muted">-</span>
                         {{end}}
@@ -55,7 +80,7 @@
                 </tr>
                 {{end}}
                 {{else}}
-                <tr><td colspan="7" class="text-center text-muted" style="padding: 2rem;">No assignments yet. Create one with "New Assignment".</td></tr>
+                <tr><td colspan="8" class="text-center text-muted" style="padding: 2rem;">No assignments yet. Create one with "New Assignment".</td></tr>
                 {{end}}
             </tbody>
         </table>
@@ -89,7 +114,11 @@
                 <label class="form-label-sm">Evaluatee (candidate)</label>
                 <select name="candidate_id" required class="form-select form-input-lg">
                     <option value="">Select a candidate</option>
-                    {{range .Candidates}}<option value="{{.ID}}">{{.Name}} · {{.Email}}</option>{{end}}
+                    {{range .CandidateGroups}}
+                    <optgroup label="{{.PostingTitle}}">
+                        {{range .Candidates}}<option value="{{.ID}}">{{.Name}} · {{.Email}}</option>{{end}}
+                    </optgroup>
+                    {{end}}
                 </select>
                 {{if not .Candidates}}<p class="mt-1 text-sm text-muted">No candidates are waiting — applicants appear here from the Candidates page.</p>{{end}}
             </div>

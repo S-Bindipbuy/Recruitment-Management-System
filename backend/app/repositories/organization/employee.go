@@ -12,6 +12,7 @@ type EmployeeRepository struct{}
 // Employees may point at NULL department/position (hire without a job
 // posting), so the ids are coalesced to 0 instead of failing the scan.
 const employeeColumns = `COALESCE(e.id, 0) AS id, e.user_id, e.employee_code,
+	COALESCE((SELECT c.full_name FROM candidates c WHERE c.id = e.candidate_id), '') AS full_name,
 	COALESCE(e.department_id, 0) AS department_id, COALESCE(e.position_id, 0) AS position_id,
 	e.manager_id, e.hire_date, e.status, e.created_at, e.updated_at`
 
@@ -99,6 +100,25 @@ func (r *EmployeeRepository) FindActiveWorkers() ([]usermodel.WorkerOption, erro
 		FROM employees e JOIN users u ON u.id = e.user_id
 		WHERE e.status = 'active' AND u.status = 'active' AND e.user_id IS NOT NULL
 		ORDER BY u.name`)
+	if err != nil {
+		return nil, err
+	}
+	return workers, nil
+}
+
+// FindActiveInterviewers lists active workers HR may schedule as interviewers.
+// The recruitment module is HR-operated, so interviewers never need to submit
+// anything themselves; they only need an active employee record.
+func (r *EmployeeRepository) FindActiveInterviewers() ([]usermodel.WorkerOption, error) {
+	var workers []usermodel.WorkerOption
+	err := database.DB.Select(&workers, `
+		SELECT e.user_id, u.name, e.employee_code, COALESCE(d.name, '') AS department_name
+		FROM employees e
+		JOIN users u ON u.id = e.user_id
+		LEFT JOIN departments d ON d.id = e.department_id
+		WHERE e.status = 'active' AND u.status = 'active'
+		  AND e.user_id IS NOT NULL AND e.can_interview = 1
+		ORDER BY COALESCE(d.name, ''), u.name`)
 	if err != nil {
 		return nil, err
 	}

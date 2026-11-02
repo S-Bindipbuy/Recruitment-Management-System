@@ -20,6 +20,7 @@ type ScopeForm struct {
 	EvaluatorID      int64
 	DueDate          string
 	CandidateIDs     []int64
+	PostingIDs       []int64
 	DropAssignmentID int64
 }
 
@@ -30,6 +31,7 @@ func ReadScopeForm(c *fiber.Ctx) ScopeForm {
 		EvaluatorID:      FormInt64(c, "evaluator_id"),
 		DueDate:          c.FormValue("due_date"),
 		CandidateIDs:     FormInt64s(c, "candidate_ids"),
+		PostingIDs:       FormInt64s(c, "posting_ids"),
 		DropAssignmentID: FormInt64(c, "drop_assignment_id"),
 	}
 }

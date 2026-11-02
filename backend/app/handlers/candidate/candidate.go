@@ -6,11 +6,9 @@ import (
 	pages "ems/app/handlers/pages/core"
 	candsvc "ems/app/services/candidate"
 	"ems/config"
-	"fmt"
-	"mime"
+	"net/http"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -67,14 +65,9 @@ func (h *CandidateHandler) DownloadCV(c *fiber.Ctx) error {
 		return c.Status(fiber.StatusNotFound).JSON(fiber.Map{"error": "CV file not found"})
 	}
 
-	downloadName := fmt.Sprintf("cv-%d%s", candidate.ID, filepath.Ext(candidate.CVName))
-	if candidate.CVName != "" && strings.HasPrefix(candidate.CVName, ".") {
-		downloadName = fmt.Sprintf("cv-%d%s", candidate.ID, candidate.CVName)
-	} else if candidate.CVName == "" {
-		downloadName = fmt.Sprintf("cv-%d", candidate.ID)
-	}
-	c.Type(candidate.CVMimeType)
-	c.Set(fiber.HeaderContentDisposition, mime.FormatMediaType("attachment", map[string]string{"filename": downloadName}))
+	contentType := http.DetectContentType(data)
+	c.Set(fiber.HeaderContentType, contentType)
+	c.Set(fiber.HeaderContentDisposition, "inline")
 	return c.Send(data)
 }
 

@@ -1,85 +1,78 @@
 {{define "page-approvals"}}
 <div class="space-y-6" id="approvals-page">
-    <div class="page-header">
+    <div class="page-header flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div class="page-header-left">
-            <h3 class="page-title">Pending Approvals</h3>
-            <p class="page-subtitle">Review and decide on evaluation assignment approvals</p>
+            <h3 class="page-title">Candidate Approvals</h3>
+            <p class="page-subtitle">Review interviewer scores and hire candidates after an interview review is submitted.</p>
         </div>
-        <button onclick="document.getElementById('request-approval-dialog').showModal()" class="btn btn-primary">
-            <i class="fa-solid fa-plus text-xs"></i> Request Approval
-        </button>
+        <form class="flex items-center gap-2" method="get" action="/pages/approvals" data-ajax>
+            <select name="job_posting_id" class="form-select" onchange="this.form.requestSubmit()">
+                <option value="">All Job Postings</option>
+                {{range .Postings}}<option value="{{.ID}}" {{if eq $.SelectedJobPostingID .ID}}selected{{end}}>{{.Title}}</option>{{end}}
+            </select>
+        </form>
     </div>
 
     <div class="card-section">
-        <table>
-            <thead class="table-head">
-                <tr>
-                    <th>Assignment</th>
-                    <th>Evaluatee</th>
-                    <th>Approver</th>
-                    <th>Level</th>
-                    <th>Status</th>
-                    <th>Date Created</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {{if .Approvals}}
-                {{range .Approvals}}
-                <tr>
-                    <td class="table-cell-bold">#{{.Approval.EvaluationAssignmentID}}</td>
-                    <td class="table-cell-muted">{{if .EvaluateeName}}{{.EvaluateeName}}{{else}}-{{end}}</td>
-                    <td class="table-cell-muted">{{.ApproverName}}</td>
-                    <td class="table-cell-muted">Level {{.Approval.Level}}</td>
-                    <td><span class="badge {{if eq .Approval.Status "approved"}}badge-neutral{{else if eq .Approval.Status "rejected"}}badge-danger{{else}}badge-warning{{end}}">{{.Approval.Status}}</span></td>
-                    <td class="text-sm text-muted">{{.Approval.CreatedAt.Format "Jan 2, 2006"}}</td>
-                    <td>
-                        <details class="approval-dropdown">
-                            <summary>Review &amp; Decide</summary>
-                            <form class="approval-form">
-                                <input type="text" name="comment" placeholder="Comments (optional)" class="approval-comment-input">
-                                <div class="approval-actions">
-                                    <button class="approve-btn" type="button" data-url="/pages/approvals/{{.Approval.ID}}/approve" data-request="POST">Approve</button>
-                                    <button class="reject-btn" type="button" data-url="/pages/approvals/{{.Approval.ID}}/reject" data-request="POST">Reject</button>
-                                </div>
-                            </form>
-                        </details>
-                    </td>
-                </tr>
-                {{end}}
-                {{else}}
-                <tr><td colspan="7" class="text-center text-muted" style="padding: 2rem;">No pending approvals. Use "Request Approval" to create one or submit an evaluation.</td></tr>
-                {{end}}
-            </tbody>
-        </table>
+        <div class="page-header-left" style="padding: 1rem 1rem 0;">
+            <h3 class="page-title">Candidate Ranking</h3>
+            <p class="page-subtitle">Combined score of submitted interviewer reviews, ranked inside each job posting. A candidate can be hired as soon as at least one review is scored — no separate evaluation step is needed.</p>
+        </div>
+        <div class="table-responsive table-wide">
+            <table>
+                <thead class="table-head">
+                    <tr>
+                        <th>Rank</th>
+                        <th>Candidate</th>
+                        <th>Job Posting</th>
+                        <th>Combined Score</th>
+                        <th>Reviews</th>
+                        <th>Interviewers</th>
+                        <th>Rounds</th>
+                        <th>Decision</th>
+                        <th>Hire</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {{range .Rankings}}
+                    <tr class="hover:bg-gray-50{{if .LatestInterviewID}} table-row-link{{end}}"{{if .LatestInterviewID}} data-href="/pages/interviews/{{.LatestInterviewID}}/feedback"{{end}}>
+                        <td><span class="badge {{if eq .Rank 1}}badge-active{{else}}badge-draft{{end}}">#{{.Rank}}</span></td>
+                        <td class="font-medium">{{.CandidateName}}</td>
+                        <td class="table-cell-muted">{{if .PostingTitle}}{{.PostingTitle}}{{else}}—{{end}}</td>
+                        <td class="font-medium">{{printf "%.2f" .AverageScore}} / 10<span class="text-xs text-muted block">Total score: {{printf "%.2f" .TotalScore}}</span></td>
+                        <td class="text-sm">{{.CompletedReviews}} of {{.TotalInterviews}}</td>
+                        <td class="text-sm">{{.InterviewerCount}}</td>
+                        <td class="text-sm">{{.CompletedRounds}} of {{.TotalRounds}}</td>
+                        <td><span class="badge {{if eq .FinalDecision "hire"}}badge-success{{else if eq .FinalDecision "maybe"}}badge-warning{{else if eq .FinalDecision "in_progress"}}badge-info{{else if eq .FinalDecision "pending"}}badge-neutral{{else}}badge-danger{{end}}">{{.FinalDecision}}</span></td>
+                        <td>
+                            {{if or (eq .CandidateStatus "hired") (eq .CandidateStatus "rejected")}}
+                            <span class="text-sm text-muted">—</span>
+                            {{else if gt .CompletedReviews 0}}
+                            <button type="button" onclick="document.getElementById('hire-candidate-{{.CandidateID}}').showModal()" class="btn btn-sm" style="background: var(--rose-foam); color: white;">Hire</button>
+                            <dialog id="hire-candidate-{{.CandidateID}}" class="dialog" style="max-width: 28rem;">
+                                <form class="dialog-body" style="border-radius: 1rem;" method="post" action="/pages/approvals/candidates/{{.CandidateID}}/accept" data-ajax data-close-dialog>
+                                    <input type="hidden" name="job_posting_id" value="{{if $.SelectedJobPostingID}}{{$.SelectedJobPostingID}}{{end}}">
+                                    <div>
+                                        <h3 class="dialog-title">Hire {{.CandidateName}}</h3>
+                                        <p class="mt-1 text-sm text-muted">Combined panel average: <strong>{{printf "%.2f" .AverageScore}} / 10</strong>. Total interviewer score: <strong>{{printf "%.2f" .TotalScore}}</strong>. This creates an active employee record using the position from the job posting.</p>
+                                    </div>
+                                    <div class="form-group"><label class="form-label">Interview rating (1–5)</label><input type="number" name="rating" min="1" max="5" step="0.1" required class="form-input" placeholder="e.g. 4.0"></div>
+                                    <div class="form-group"><label class="form-label">Assessment notes</label><textarea name="notes" rows="3" class="form-input" placeholder="Optional hiring notes"></textarea></div>
+                                    <div class="dialog-footer" style="border-top: 1px solid #f1f5f9; padding-top: 1rem;"><button type="button" onclick="this.closest('dialog').close()" class="btn btn-ghost">Cancel</button><button type="submit" class="btn btn-love">Hire candidate</button></div>
+                                </form>
+                            </dialog>
+                            {{else}}
+                            <span class="text-sm text-muted">Awaiting scores</span>
+                            {{end}}
+                        </td>
+                    </tr>
+                    {{else}}
+                    <tr><td colspan="9" class="empty-state"><i class="fa-solid fa-ranking-star empty-state-icon"></i>No candidates with interview scores are awaiting a hiring decision.</td></tr>
+                    {{end}}
+                </tbody>
+            </table>
+        </div>
     </div>
 
-    <dialog id="request-approval-dialog" class="dialog">
-        <form class="dialog-body" method="post" action="/pages/approvals" data-ajax data-close-dialog>
-            <h3 class="dialog-title">Request Evaluation Approval</h3>
-            <div class="form-group">
-                <label class="form-label-sm">Assignment</label>
-                <select name="assignment_id" required class="form-select form-input-lg">
-                    <option value="">Select an assignment</option>
-                    {{range .Assignable}}<option value="{{.ID}}">{{.Label}}</option>{{end}}
-                </select>
-            </div>
-            <div class="form-group">
-                <label class="form-label-sm">Approver</label>
-                <select name="approver_id" required class="form-select form-input-lg">
-                    <option value="">Select a worker</option>
-                    {{range .Workers}}<option value="{{.UserID}}">{{.Name}} · {{.EmployeeCode}}</option>{{end}}
-                </select>
-            </div>
-            <div class="form-group">
-                <label class="form-label-sm">Approval Level</label>
-                <input type="number" name="level" value="1" required class="form-input form-input-lg">
-            </div>
-            <div class="dialog-footer">
-                <button type="button" onclick="this.closest('dialog').close()" class="btn btn-ghost">Cancel</button>
-                <button type="submit" class="btn btn-love">Submit Request</button>
-            </div>
-        </form>
-    </dialog>
 </div>
 {{end}}

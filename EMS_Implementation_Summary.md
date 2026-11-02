@@ -19,7 +19,7 @@ The authoritative schema source is `backend/database/migrations/*/000001_init.sq
 | Skills (library, candidate/posting skills) | schema + repos done, **no routes wired** | `app/repositories/recruitment/skill.go` (`SkillRepository`), `app/services/recruitment/skill.go` |
 | Job postings (+ wizard) | done | `app/handlers/recruitment/job_posting.go`, `app/handlers/pages/recruitment/pages_recruitment.go`, `pages_job_wizard.go` |
 | Interview rounds / interviews / feedback | done | `app/handlers/recruitment/interview_round.go`, `interview.go`, `interview_feedback.go` |
-| Recruitment reports | done (queries join a missing `candidates.position_id`, see below) | `app/handlers/recruitment/report.go` |
+| Recruitment reports | done | `app/handlers/recruitment/report.go`, `app/repositories/recruitment/interview_feedback.go` |
 | Evaluation (periods, templates, sections, questions, assignments) | done | `app/handlers/evaluation/`, `app/handlers/pages/evaluation/pages_evaluation.go` |
 | Cycle wizard (bulk assignment launcher) | done | `app/handlers/pages/cycle/`, rules in `app/services/cycles/` |
 | Evaluation fill / scoring / comments | done | `app/services/evaluation/` (`assignment.go`, `response.go`, `result.go`, `comment.go`) |
@@ -38,15 +38,6 @@ Known gaps, preserved deliberately:
   (`rating_scales`, `rating_scale_options`) and the unused template file
   `frontend/templates/pages/rating_scales.html` are left; no Go code and no
   route reference them.
-- **Recruitment reports are broken by schema drift.** The report queries join
-  `candidates.position_id`, a column that has never existed in the schema
-  (`candidates` has `job_posting_id`), so `/api/reports/*` and
-  `/pages/recruitment-reports` return an error. The SQL is kept as-is (aliased
-  for sqlx) in `app/repositories/recruitment/interview_feedback.go` until the
-  reports are redesigned.
-- **`FindPendingForApprover` ignores its argument** and returns every pending
-  approval — historical behavior kept intentionally.
-
 ---
 
 ## Recruitment Feature Set
@@ -55,13 +46,40 @@ Known gaps, preserved deliberately:
    to positions/departments; salary range, employment type; multi-step posting wizard.
 2. **Skills library** — centralized skills with categories; candidate proficiency and
    posting requirements (schema + repositories ready; UI/API not wired).
-3. **Interview scheduling** — candidates matched to rounds; interviewers chosen from
-   active workers; date/time, duration, location, meeting link; status tracking.
-4. **Interview rounds** — HR/Technical/Final per posting, numbering, max/pass scores.
-5. **Interview feedback** — 0–10 score, recommendation, strengths/weaknesses/comments
-   (one feedback row per interview, enforced by a unique index).
-6. **Reporting** — candidate evaluation summary, interviewer activity, hiring decisions
-   (currently erroring — see known gaps).
+3. **Interview scheduling** — candidates matched to rounds; a whole job-posting
+   group can be selected at once (per-group select-all); interviewers chosen from
+   active workers by department; date/time, duration, location, meeting link;
+   status tracking. Access is scoped by `interview.view`, `interview.assign`,
+   `interview.score`, and `interview.approve`.
+4. **Interview rounds** — HR/Technical/Final per posting, numbering, max/pass
+   scores, and a per-round weight used in the candidate's weighted average.
+5. **Interview feedback** — per-question 0–10 scores plus recommendation,
+   strengths/weaknesses/comments, one feedback row per panel member
+   (`UNIQUE (interview_id, interviewer_id)`). Each interviewer's overall score
+   is the weighted average of their question scores; the candidate's combined
+   score averages every panel member's feedback. `recorded_by_user_id` keeps
+   the user who typed a row even when a manager enters it on the interviewer's
+   behalf, and approvers can compare the whole panel and the combined ranking.
+6. **Candidate pipeline** — `new → screening → interviewing → hired/rejected`,
+   with an audited `candidate_status_history` (who changed it, when, and why).
+   Scheduling an interview advances a fresh applicant to `interviewing`;
+   rejection requires a reason; accepting uses the candidate's interview scores
+   and ranking directly to create the employee record (no separate evaluation step
+   needed), and writes the `hired` transition in the same transaction.
+7. **Reporting** — weighted candidate summaries and per-posting ranking,
+   interviewer activity, and hiring decisions. The same ranking appears on the
+   Interviews, Reports, Dashboard and Approvals pages; candidates are ranked
+   inside their job posting as soon as one interviewer has scored them, and the
+   review/round counts show how complete that score is.
+8. **Role-based recruitment access** — interviewers and assigned evaluators log
+   in and see only their own schedules/candidates; `interview.assign` manages
+   schedules, `interview.approve` sees the combined ranking, and
+   `evaluation.assign` gets a read-only view of all schedules.
+   `employees.can_interview` controls the interviewer pick-list.
+9. **Contact log and task queue** — HR records calls, emails, Telegram messages,
+   and meetings with an optional next follow-up date. The dashboard surfaces
+   follow-ups due in the next week and past interviews still waiting for a
+   score.
 
 ---
 
@@ -79,8 +97,7 @@ backend/
 │   ├── connection.go            # *sqlx.DB, DSN per dialect (WAL, busy timeout)
 │   ├── migrations.go            # goose: embed + dialect + Up
 │   ├── migrations/
-│   │   ├── sqlite/000001_init.sql
-│   │   └── postgres/000001_init.sql
+│   │   └── turso/               # goose SQL migrations (libSQL/Turso dialect)
 │   ├── seed.go                  # SeedDefaultRBAC, SeedAdminUser (dev admin)
 │   └── seed.sql                 # portable manual seed
 ├── routes/                      # /api/* registration, one file per area
@@ -154,8 +171,8 @@ place where every page area is registered.
 - Schema is fully `IF NOT EXISTS`, so pre-goose databases are adopted in place;
   the init migration also deduplicates `evaluation_responses` (enabling the
   unique index behind `Upsert`) and clears stale zero-score results.
-- Add a migration: new numbered file in **both** dialect directories — never
-  edit an applied one. See the project documentation §4 for the SQLite →
+- Add a migration: new numbered file in `backend/database/migrations/turso/` —
+  never edit an applied one. See the project documentation §4 for the SQLite →
   PostgreSQL translation rules.
 
 ---
